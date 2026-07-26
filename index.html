@@ -158,6 +158,16 @@ footer b{color:var(--ink2)}
 .reprow .rv{text-align:right;white-space:nowrap}
 .reprow .rv .big{font-family:'Space Grotesk';font-weight:600;font-size:15px}
 .reprow .rv .sub{font-size:11px;color:var(--muted);margin-top:1px}
+
+.nivbadge,.nivtag{display:inline-block;font-weight:700;color:#fff;vertical-align:middle;white-space:nowrap}
+.nivbadge{font-size:11.5px;padding:3px 11px;border-radius:20px;margin-left:8px;letter-spacing:.2px}
+.nivtag{font-size:10px;padding:1px 7px;border-radius:10px;margin-left:6px}
+.lvl1{background:#1B8A4B}.lvl2{background:#4E9A3D}.lvl3{background:#C9962B}.lvl4{background:#D9772E}.lvl5{background:#D24E2A}.lvl6{background:#CC212A}.nsc{background:#8A9BA6}
+.nbtn{color:#fff;border:1px solid transparent;font-family:'Inter';font-size:12px;font-weight:600;padding:6px 11px;border-radius:20px;cursor:pointer;opacity:.55;transition:all .12s}
+.nbtn[data-niv="all"]{background:#fff;color:var(--text);border:1px solid var(--line);opacity:1}
+.nbtn:hover{opacity:1}
+.nbtn.active{opacity:1;box-shadow:0 0 0 2px #fff,0 0 0 4px currentColor}
+.nbtn[data-niv="all"].active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:none}
 </style>
 </head>
 <body>
@@ -265,16 +275,17 @@ function render(){
 function empty(){ el.innerHTML=`<div class="empty"><div class="big">Consulta un cliente</div><p>Busca por <b>cédula</b> o <b>nombre</b> (o usa la casilla de <b>Nº de factura</b>). Verás el total comprado en tienda, cuánto de contado y cuánto por Cashea, y el detalle de crédito. Usa el <b>período</b> de arriba para acotar por fecha.</p></div>`; }
 function noResult(rawq){ el.innerHTML=`<div class="empty"><div class="big">Sin coincidencias</div><p>Nada coincide con <span class="kbd">${esc(rawq)}</span>. Prueba la cédula, el nombre o el Nº de factura.</p></div>`; }
 function list(matches){
-  el.innerHTML=`<div class="orders-title">${matches.length} clientes encontrados${FILT.mode!=='all'?` · ${filterLabel()}`:''}</div><div class="reslist">${matches.map(([c,cl])=>{const t=totals(cl);return `<div class="resitem" data-c="${c}"><div><div class="nm">${esc(cl.n||'(sin nombre)')}</div><div class="cd num">C.I. ${esc(cl.r||c)} · Cód. ${esc(cl.c||'—')}</div></div><div class="rr num">${money(t.tot)} · ${t.nf} fact ›</div></div>`;}).join('')}</div>`;
+  el.innerHTML=`<div class="orders-title">${matches.length} clientes encontrados${FILT.mode!=='all'?` · ${filterLabel()}`:''}</div><div class="reslist">${matches.map(([c,cl])=>{const t=totals(cl);return `<div class="resitem" data-c="${c}"><div><div class="nm">${esc(cl.n||'(sin nombre)')}${nivelTag(m.pi)}</div><div class="cd num">C.I. ${esc(cl.r||c)} · Cód. ${esc(cl.c||'—')}</div></div><div class="rr num">${money(t.tot)} · ${t.nf} fact ›</div></div>`;}).join('')}</div>`;
   el.querySelectorAll('.resitem').forEach(n=>n.onclick=()=>{ q.value=n.dataset.c; CURR=n.dataset.c; HILITE=null; dossier(); window.scrollTo({top:0}); });
 }
 function dossier(){
   const cl=CLIENTES[CURR]; if(!cl){ empty(); return; }
   const t=totals(cl); const coPct=t.tot>0?(t.co/t.tot*100):0, caPct=t.tot>0?(t.ca/t.tot*100):0;
   const O=(cl.orders||[]).filter(o=>predicate()(dmyToYmd(o.fc)));
+  const _vt=O.reduce((a,o)=>a+(typeof o.vt==='number'?o.vt:0),0), _pc=O.reduce((a,o)=>a+(typeof o.pc==='number'?o.pc:0),0); const cliPi=_vt?_pc/_vt:null;
   el.innerHTML=`
     <div class="dossier-head">
-      <div><div class="name">${esc(cl.n||'(sin nombre)')}</div>
+      <div><div class="name">${esc(cl.n||'(sin nombre)')}${nivelBadge(nivelInicial(cliPi),cliPi)}</div>
         <div class="ced num">C.I./RIF <b>${esc(cl.r||CURR)}</b> &nbsp;·&nbsp; Código cliente <b>${esc(cl.c||'—')}</b></div></div>
       <button class="back" id="back">‹ Nueva búsqueda</button>
     </div>
@@ -403,8 +414,11 @@ document.getElementById('lbtn').onclick=doLogin;
 document.getElementById('lpass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 document.getElementById('luser').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('lpass').focus(); });
 // ===== Reportes =====
-let MODE='consulta', RSORT='tot', RPIMIN=null, RPIMAX=null, RTYPE='all';
+let MODE='consulta', RSORT='tot', RPIMIN=null, RPIMAX=null, RTYPE='all', RNIVEL='all';
 function clientType(r){ const c=(r||'').trim().charAt(0).toUpperCase(); if(c==='V'||c==='E'||c==='I'||c==='P'||c==='W'||c===''||(c>='0'&&c<='9')) return 'natural'; return 'juridico'; }
+function nivelInicial(pi){ if(pi===null||pi===undefined) return null; const p=pi*100; if(p>=45)return 1; if(p>=35)return 2; if(p>=25)return 3; if(p>=15)return 4; if(p>=5)return 5; return 6; }
+function nivelBadge(n,pi){ if(n===null) return '<span class="nivbadge nsc">Sin Cashea</span>'; return `<span class="nivbadge lvl${n}" title="Nivel segun inicial pagada en Cashea">Nivel ${n} · ${pct(pi)} inicial</span>`; }
+function nivelTag(pi){ const n=nivelInicial(pi); if(n===null) return ''; return `<span class="nivtag lvl${n}">N${n}</span>`; }
 function metrics(cl){
   const p=predicate(); let tot=0,ca=0,can=0,vt=0,pc=0,ord=0;
   for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; tot+=r[2]; if(r[3]){ca+=r[2];can++;} }
@@ -426,6 +440,14 @@ function enterReportes(){
       <button class="tbtn active" data-type="all">Todos</button>
       <button class="tbtn" data-type="juridico">Jurídico (J, G, C, F, A, L…)</button>
       <button class="tbtn" data-type="natural">Persona natural (V, E, I, P, W / sin letra)</button></div>
+    <div class="repgrp"><span class="rlab">Nivel</span>
+      <button class="nbtn active" data-niv="all">Todos</button>
+      <button class="nbtn lvl1" data-niv="1">N1 · 50%</button>
+      <button class="nbtn lvl2" data-niv="2">N2 · 40%</button>
+      <button class="nbtn lvl3" data-niv="3">N3 · 30%</button>
+      <button class="nbtn lvl4" data-niv="4">N4 · 20%</button>
+      <button class="nbtn lvl5" data-niv="5">N5 · 10%</button>
+      <button class="nbtn lvl6" data-niv="6">N6 · 0%</button></div>
     <div class="repgrp"><span class="rlab">% inicial</span>
       <button class="pbtn active" data-min="" data-max="">Todos</button>
       <button class="pbtn" data-min="0" data-max="0.5">0%</button>
@@ -437,6 +459,7 @@ function enterReportes(){
   </div><div class="reptitle" id="reptitle"></div><div id="reptable"></div>`;
   el.querySelectorAll('.rbtn').forEach(b=>b.onclick=()=>{ RSORT=b.dataset.sort; el.querySelectorAll('.rbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.tbtn').forEach(b=>b.onclick=()=>{ RTYPE=b.dataset.type; el.querySelectorAll('.tbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
+  el.querySelectorAll('.nbtn').forEach(b=>b.onclick=()=>{ RNIVEL=b.dataset.niv; el.querySelectorAll('.nbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.pbtn').forEach(b=>b.onclick=()=>{ RPIMIN=b.dataset.min===''?null:+b.dataset.min; RPIMAX=b.dataset.max===''?null:+b.dataset.max; const a=document.getElementById('pmin'),c=document.getElementById('pmax'); if(a)a.value=''; if(c)c.value=''; el.querySelectorAll('.pbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   const pmin=document.getElementById('pmin'),pmax=document.getElementById('pmax');
   const onC=()=>{ RPIMIN=pmin.value===''?null:+pmin.value; RPIMAX=pmax.value===''?null:+pmax.value; el.querySelectorAll('.pbtn').forEach(x=>x.classList.remove('active')); renderRepTable(); };
@@ -454,6 +477,7 @@ function renderRepTable(){
     else if(RSORT==='ca'){ if(m.ca<=0) continue; }
     else { if(m.tot<=0) continue; }
     if(filterPi){ const p=m.pi*100; if(RPIMIN!==null&&p<RPIMIN) continue; if(RPIMAX!==null&&p>RPIMAX) continue; }
+    if(RNIVEL!=='all'){ if(String(nivelInicial(m.pi))!==RNIVEL) continue; }
     rows.push([k,cl,m]);
   }
   const dir=RSORT==='pi'?1:-1, key=RSORT;
