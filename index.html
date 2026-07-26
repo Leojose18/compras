@@ -172,7 +172,7 @@ footer b{color:var(--ink2)}
 .acwrap{position:relative;flex:1;min-width:180px}
 .acwrap .searchbox{width:100%}
 .acbox{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:60;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.2);overflow-x:hidden;overflow-y:auto;display:none;max-height:min(60vh,380px)}
-.acitem{padding:10px 14px;cursor:pointer;border-bottom:1px solid #F3EAEA}
+.acitem{padding:10px 14px;cursor:pointer;border-bottom:1px solid #F3EAEA;color:var(--text)}
 .acitem:last-child{border-bottom:none}
 .acitem:hover,.acitem.sel{background:#FCEAEB}
 .acitem .nm{font-family:'Space Grotesk';font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -214,7 +214,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · buscador predictivo v2</div>
+    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · buscador v3 (lista + predictivo)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -289,8 +289,8 @@ function render(){
 function empty(){ el.innerHTML=`<div class="empty"><div class="big">Consulta un cliente</div><p>Busca por <b>cédula</b> o <b>nombre</b> (o usa la casilla de <b>Nº de factura</b>). Verás el total comprado en tienda, cuánto de contado y cuánto por Cashea, y el detalle de crédito. Usa el <b>período</b> de arriba para acotar por fecha.</p></div>`; }
 function noResult(rawq){ el.innerHTML=`<div class="empty"><div class="big">Sin coincidencias</div><p>Nada coincide con <span class="kbd">${esc(rawq)}</span>. Prueba la cédula, el nombre o el Nº de factura.</p></div>`; }
 function list(matches){
-  el.innerHTML=`<div class="orders-title">${matches.length} clientes encontrados${FILT.mode!=='all'?` · ${filterLabel()}`:''}</div><div class="reslist">${matches.map(([c,cl])=>{const t=totals(cl);return `<div class="resitem" data-c="${c}"><div><div class="nm">${esc(cl.n||'(sin nombre)')}${nivelTag(m.pi)}</div><div class="cd num">C.I. ${esc(cl.r||c)} · Cód. ${esc(cl.c||'—')}</div></div><div class="rr num">${money(t.tot)} · ${t.nf} fact ›</div></div>`;}).join('')}</div>`;
-  el.querySelectorAll('.resitem').forEach(n=>n.onclick=()=>{ q.value=n.dataset.c; CURR=n.dataset.c; HILITE=null; dossier(); window.scrollTo({top:0}); });
+  el.innerHTML=`<div class="orders-title">${matches.length} clientes encontrados${FILT.mode!=='all'?` · ${filterLabel()}`:''}</div><div class="reslist">${matches.map(([c,cl])=>{const t=totals(cl);return `<div class="resitem" data-c="${c}"><div><div class="nm">${esc(cl.n||'(sin nombre)')}${nivelTag(piAll(cl))}</div><div class="cd num">C.I. ${esc(cl.r||c)} · Cód. ${esc(cl.c||'—')}</div></div><div class="rr num">${money(t.tot)} · ${t.nf} fact ›</div></div>`;}).join('')}</div>`;
+  el.querySelectorAll('.resitem').forEach(n=>n.onclick=()=>{ hideAC(); q.value=''; clr.style.display='none'; CURR=n.dataset.c; HILITE=null; dossier(); window.scrollTo({top:0}); });
 }
 function dossier(){
   const cl=CLIENTES[CURR]; if(!cl){ empty(); return; }
@@ -373,21 +373,25 @@ function piAll(cl){ let vt=0,pc=0; for(const o of (cl.orders||[])){ vt+=(typeof 
 function hideAC(){ ac.style.display='none'; ACSEL=-1; }
 function paintAC(){ const its=ac.querySelectorAll('.acitem'); its.forEach((n,i)=>n.classList.toggle('sel',i===ACSEL)); const s=ac.querySelector('.acitem.sel'); if(s) s.scrollIntoView({block:'nearest'}); }
 function pickAC(k){ if(!k||!CLIENTES[k]) return; CURR=k; HILITE=null; q.value=''; clr.style.display='none'; hideAC(); dossier(); window.scrollTo({top:0}); }
-function suggest(){
-  const raw=q.value.trim(); clr.style.display=raw?'block':'none'; markConsulta();
-  if(!raw){ hideAC(); CURR=null; empty(); return; }
-  if(q.value){ qf.value=''; clrf.style.display='none'; }
+function searchMatches(raw){
   const d=digits(raw); let m=[];
-  if(d.length>=4){ m=Object.entries(CLIENTES).filter(([c])=>c.startsWith(d)).slice(0,12); }
+  if(d.length>=4){ m=Object.entries(CLIENTES).filter(([c])=>c.startsWith(d)); }
   else {
     const ws=norm(raw).split(/\s+/).filter(Boolean), q0=ws[0]||'';
     m=Object.entries(CLIENTES).filter(([,c])=>{ const n=norm(c.n); return ws.every(w=>n.includes(w)); });
     m.sort((a,b)=>{ const na=norm(a[1].n), nb=norm(b[1].n), sa=na.startsWith(q0)?0:1, sb=nb.startsWith(q0)?0:1; return sa!==sb?sa-sb:(na<nb?-1:na>nb?1:0); });
-    m=m.slice(0,12);
   }
-  ACLIST=m; ACSEL=-1;
-  if(!m.length){ ac.innerHTML='<div class="acnone">Sin coincidencias</div>'; ac.style.display='block'; return; }
-  ac.innerHTML=m.map(([k,c])=>`<div class="acitem" data-c="${k}"><div class="nm">${esc(c.n||'(sin nombre)')}${nivelTag(piAll(c))}</div><div class="cd num">C.I./RIF ${esc(c.r||k)} · Cód ${esc(c.c||'—')}</div></div>`).join('');
+  return m;
+}
+function renderBody(raw){ const m=searchMatches(raw); if(!m.length){ CURR=null; noResult(raw); } else { CURR=null; list(m.slice(0,150)); } return m; }
+function suggest(){
+  const raw=q.value.trim(); clr.style.display=raw?'block':'none'; markConsulta();
+  if(!raw){ hideAC(); CURR=null; empty(); return; }
+  if(q.value){ qf.value=''; clrf.style.display='none'; }
+  const m=renderBody(raw);
+  const top=m.slice(0,25); ACLIST=top; ACSEL=-1;
+  if(!top.length){ ac.innerHTML='<div class="acnone">Sin coincidencias</div>'; ac.style.display='block'; return; }
+  ac.innerHTML=top.map(([k,c])=>`<div class="acitem" data-c="${k}"><div class="nm">${esc(c.n||'(sin nombre)')}${nivelTag(piAll(c))}</div><div class="cd num">C.I./RIF ${esc(c.r||k)}</div></div>`).join('');
   ac.style.display='block';
   ac.querySelectorAll('.acitem').forEach(n=>n.onclick=()=>pickAC(n.dataset.c));
 }
@@ -472,7 +476,7 @@ function metrics(cl){
   return {tot:r2(tot),ca:r2(ca),can,ord,pi:vt>0?pc/vt:null};
 }
 function markConsulta(){ MODE='consulta'; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='consulta')); }
-function refresh(){ if(MODE==='reportes'){ renderRepTable(); return; } if(CURR && CLIENTES[CURR]){ dossier(); } else { empty(); } }
+function refresh(){ if(MODE==='reportes'){ renderRepTable(); return; } if(CURR && CLIENTES[CURR]){ dossier(); return; } const rawq=q.value.trim(); if(rawq){ renderBody(rawq); } else { empty(); } }
 function setTab(m){ if(m==='reportes' && ROLE!=='reportes') return; MODE=m; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===m)); if(m==='reportes') enterReportes(); else refresh(); }
 function applyRole(){ const rt=document.querySelector('.tab[data-tab="reportes"]'); if(rt) rt.style.display=(ROLE==='reportes')?'':'none'; if(ROLE!=='reportes' && MODE==='reportes'){ markConsulta(); render(); } }
 function enterReportes(){
