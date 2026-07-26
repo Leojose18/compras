@@ -214,7 +214,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · buscador v3 (lista + predictivo)</div>
+    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · buscador v4 (lista + Enter)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -289,7 +289,7 @@ function render(){
 function empty(){ el.innerHTML=`<div class="empty"><div class="big">Consulta un cliente</div><p>Busca por <b>cédula</b> o <b>nombre</b> (o usa la casilla de <b>Nº de factura</b>). Verás el total comprado en tienda, cuánto de contado y cuánto por Cashea, y el detalle de crédito. Usa el <b>período</b> de arriba para acotar por fecha.</p></div>`; }
 function noResult(rawq){ el.innerHTML=`<div class="empty"><div class="big">Sin coincidencias</div><p>Nada coincide con <span class="kbd">${esc(rawq)}</span>. Prueba la cédula, el nombre o el Nº de factura.</p></div>`; }
 function list(matches){
-  el.innerHTML=`<div class="orders-title">${matches.length} clientes encontrados${FILT.mode!=='all'?` · ${filterLabel()}`:''}</div><div class="reslist">${matches.map(([c,cl])=>{const t=totals(cl);return `<div class="resitem" data-c="${c}"><div><div class="nm">${esc(cl.n||'(sin nombre)')}${nivelTag(piAll(cl))}</div><div class="cd num">C.I. ${esc(cl.r||c)} · Cód. ${esc(cl.c||'—')}</div></div><div class="rr num">${money(t.tot)} · ${t.nf} fact ›</div></div>`;}).join('')}</div>`;
+  el.innerHTML=`<div class="orders-title">${matches.length} clientes encontrados${FILT.mode!=='all'?` · ${filterLabel()}`:''}</div><div class="reslist">${matches.map(([c,cl])=>{const t=totals(cl);return `<div class="resitem" data-c="${c}"><div><div class="nm">${esc(cl.n||'(sin nombre)')}${nivelTag(piAll(cl))}</div><div class="cd num">C.I./RIF ${esc(cl.r||c)}</div></div><div class="rr num">${money(t.tot)} · ${t.nf} fact ›</div></div>`;}).join('')}</div>`;
   el.querySelectorAll('.resitem').forEach(n=>n.onclick=()=>{ hideAC(); q.value=''; clr.style.display='none'; CURR=n.dataset.c; HILITE=null; dossier(); window.scrollTo({top:0}); });
 }
 function dossier(){
@@ -397,12 +397,11 @@ function suggest(){
 }
 let t; q.addEventListener('input',()=>{ clearTimeout(t); t=setTimeout(suggest,80); });
 q.addEventListener('keydown',e=>{
-  if(ac.style.display==='block' && ACLIST.length){
-    if(e.key==='ArrowDown'){ e.preventDefault(); ACSEL=Math.min(ACSEL+1,ACLIST.length-1); paintAC(); return; }
-    if(e.key==='ArrowUp'){ e.preventDefault(); ACSEL=Math.max(ACSEL-1,0); paintAC(); return; }
-    if(e.key==='Enter'){ e.preventDefault(); const p=ACSEL>=0?ACLIST[ACSEL]:ACLIST[0]; if(p) pickAC(p[0]); return; }
-    if(e.key==='Escape'){ hideAC(); return; }
-  }
+  const open = ac.style.display==='block' && ACLIST.length;
+  if(e.key==='ArrowDown' && open){ e.preventDefault(); ACSEL=Math.min(ACSEL+1,ACLIST.length-1); paintAC(); return; }
+  if(e.key==='ArrowUp' && open){ e.preventDefault(); ACSEL=Math.max(ACSEL-1,0); paintAC(); return; }
+  if(e.key==='Escape'){ hideAC(); return; }
+  if(e.key==='Enter'){ e.preventDefault(); if(open && ACSEL>=0){ pickAC(ACLIST[ACSEL][0]); } else { hideAC(); renderBody(q.value.trim()); q.blur(); } return; }
 });
 q.addEventListener('blur',()=>setTimeout(hideAC,180));
 ac.addEventListener('mousedown',e=>e.preventDefault());
