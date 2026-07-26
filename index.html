@@ -135,6 +135,29 @@ footer b{color:var(--ink2)}
 #lock input:focus{border-color:var(--accent)}
 #lbtn{width:100%;background:var(--ink);color:#fff;border:none;border-radius:10px;padding:12px;font-family:'Space Grotesk';font-size:15px;font-weight:600;cursor:pointer;margin-top:4px}
 #lmsg{margin-top:12px;font-size:13px;color:var(--fin);min-height:18px}
+
+.tabs{margin-top:11px;display:flex;gap:6px}
+.tab{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.5);color:#fff;font-family:'Inter';font-size:13px;font-weight:600;padding:7px 18px;border-radius:20px;cursor:pointer;transition:all .12s}
+.tab.active{background:#fff;border-color:#fff;color:var(--accent)}
+.repctrl{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;flex-direction:column;gap:12px}
+.repgrp{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.rlab{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700;margin-right:4px}
+.rbtn,.pbtn{background:#fff;border:1px solid var(--line);color:var(--text);font-family:'Inter';font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:20px;cursor:pointer;transition:all .12s}
+.rbtn:hover,.pbtn:hover{border-color:var(--accent)}
+.rbtn.active,.pbtn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.rcustom{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.rcustom input{width:56px;border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-family:'Inter';font-size:13px;outline:none;color:var(--text)}
+.rcustom input:focus{border-color:var(--accent)}
+.reptitle{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:10px}
+.reprow{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:7px;cursor:pointer;transition:border-color .12s,transform .1s,box-shadow .15s}
+.reprow:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 12px rgba(204,33,42,.08)}
+.reprow .rk{font-family:'Space Grotesk';font-weight:700;color:var(--muted);font-size:14px;min-width:26px;text-align:center}
+.reprow .rn{flex:1;min-width:0}
+.reprow .rn .nm{font-family:'Space Grotesk';font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reprow .rn .cd{font-size:12px;color:var(--muted)}
+.reprow .rv{text-align:right;white-space:nowrap}
+.reprow .rv .big{font-family:'Space Grotesk';font-weight:600;font-size:15px}
+.reprow .rv .sub{font-size:11px;color:var(--muted);margin-top:1px}
 </style>
 </head>
 <body>
@@ -177,6 +200,10 @@ footer b{color:var(--ink2)}
       <button class="fbtn" data-mode="3m">3 meses</button>
       <button class="fbtn" data-mode="1m">1 mes</button>
       <span class="fday" id="fdaywrap"><span class="dl">Día</span><input type="date" id="fdate"></span>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="consulta">Consulta</button>
+      <button class="tab" data-tab="reportes">Reportes</button>
     </div>
   </div>
 </header>
@@ -314,11 +341,11 @@ function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;'
 const fbtns=[...document.querySelectorAll('.fbtn')], fdate=document.getElementById('fdate'), fdaywrap=document.getElementById('fdaywrap');
 function paintFilter(){ fbtns.forEach(b=>b.classList.toggle('active', FILT.mode===b.dataset.mode)); fdaywrap.classList.toggle('active', FILT.mode==='day'); if(FILT.mode!=='day') fdate.value=''; }
 function setFilter(mode){ FILT.mode=mode; if(mode!=='day') FILT.day=null; paintFilter(); }
-fbtns.forEach(b=>b.onclick=()=>{ setFilter(b.dataset.mode); render(); });
-fdate.addEventListener('change',()=>{ if(!fdate.value){ setFilter('all'); render(); return; } const p=fdate.value.split('-'); FILT.mode='day'; FILT.day=+(p[0]+p[1]+p[2]); paintFilter(); render(); });
+fbtns.forEach(b=>b.onclick=()=>{ setFilter(b.dataset.mode); refresh(); });
+fdate.addEventListener('change',()=>{ if(!fdate.value){ setFilter('all'); refresh(); return; } const p=fdate.value.split('-'); FILT.mode='day'; FILT.day=+(p[0]+p[1]+p[2]); paintFilter(); refresh(); });
 
-let t; q.addEventListener('input',()=>{ if(q.value){ qf.value=''; clrf.style.display='none'; } clearTimeout(t); t=setTimeout(render,120); });
-let tf; qf.addEventListener('input',()=>{ if(qf.value){ q.value=''; clr.style.display='none'; } clearTimeout(tf); tf=setTimeout(renderFactura,120); });
+let t; q.addEventListener('input',()=>{ markConsulta(); if(q.value){ qf.value=''; clrf.style.display='none'; } clearTimeout(t); t=setTimeout(render,120); });
+let tf; qf.addEventListener('input',()=>{ markConsulta(); if(qf.value){ q.value=''; clr.style.display='none'; } clearTimeout(tf); tf=setTimeout(renderFactura,120); });
 clrf.onclick=()=>{ qf.value=''; CURR=null; HILITE=null; qf.focus(); renderFactura(); };
 function renderFactura(){
   const raw=qf.value.trim(); clrf.style.display=raw?'block':'none'; HILITE=null;
@@ -363,6 +390,65 @@ async function doLogin(){
 document.getElementById('lbtn').onclick=doLogin;
 document.getElementById('lpass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 document.getElementById('luser').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('lpass').focus(); });
+// ===== Reportes =====
+let MODE='consulta', RSORT='tot', RPIMIN=null, RPIMAX=null;
+function metrics(cl){
+  const p=predicate(); let tot=0,ca=0,can=0,vt=0,pc=0,ord=0;
+  for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; tot+=r[2]; if(r[3]){ca+=r[2];can++;} }
+  for(const o of cl.orders){ if(!p(dmyToYmd(o.fc))) continue; ord++; vt+=(o.vt||0); pc+=(o.pc||0); }
+  return {tot:r2(tot),ca:r2(ca),can,ord,pi:vt>0?pc/vt:null};
+}
+function markConsulta(){ MODE='consulta'; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='consulta')); }
+function refresh(){ if(MODE==='reportes') renderRepTable(); else render(); }
+function setTab(m){ MODE=m; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===m)); if(m==='reportes') enterReportes(); else render(); }
+function enterReportes(){
+  el.innerHTML=`<div class="repctrl">
+    <div class="repgrp"><span class="rlab">Ordenar por</span>
+      <button class="rbtn active" data-sort="tot">Total comprado</button>
+      <button class="rbtn" data-sort="ca">Cashea $</button>
+      <button class="rbtn" data-sort="ord">Nº órdenes</button>
+      <button class="rbtn" data-sort="pi">% inicial (menor→mayor)</button></div>
+    <div class="repgrp"><span class="rlab">% inicial</span>
+      <button class="pbtn active" data-min="" data-max="">Todos</button>
+      <button class="pbtn" data-min="0" data-max="0.5">0%</button>
+      <button class="pbtn" data-min="0" data-max="10">≤10%</button>
+      <button class="pbtn" data-min="10" data-max="20">10–20%</button>
+      <button class="pbtn" data-min="20" data-max="30">20–30%</button>
+      <button class="pbtn" data-min="30" data-max="100000">&gt;30%</button>
+      <span class="rcustom">mín<input id="pmin" type="number" min="0" max="100" inputmode="numeric">máx<input id="pmax" type="number" min="0" max="100" inputmode="numeric">%</span></div>
+  </div><div class="reptitle" id="reptitle"></div><div id="reptable"></div>`;
+  el.querySelectorAll('.rbtn').forEach(b=>b.onclick=()=>{ RSORT=b.dataset.sort; el.querySelectorAll('.rbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
+  el.querySelectorAll('.pbtn').forEach(b=>b.onclick=()=>{ RPIMIN=b.dataset.min===''?null:+b.dataset.min; RPIMAX=b.dataset.max===''?null:+b.dataset.max; const a=document.getElementById('pmin'),c=document.getElementById('pmax'); if(a)a.value=''; if(c)c.value=''; el.querySelectorAll('.pbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
+  const pmin=document.getElementById('pmin'),pmax=document.getElementById('pmax');
+  const onC=()=>{ RPIMIN=pmin.value===''?null:+pmin.value; RPIMAX=pmax.value===''?null:+pmax.value; el.querySelectorAll('.pbtn').forEach(x=>x.classList.remove('active')); renderRepTable(); };
+  pmin.addEventListener('input',onC); pmax.addEventListener('input',onC);
+  renderRepTable();
+}
+function renderRepTable(){
+  const filterPi=(RPIMIN!==null||RPIMAX!==null); const rows=[];
+  for(const k in CLIENTES){
+    const cl=CLIENTES[k], m=metrics(cl);
+    if(RSORT==='pi'||filterPi){ if(m.pi===null) continue; }
+    else if(RSORT==='ord'){ if(m.ord===0) continue; }
+    else if(RSORT==='ca'){ if(m.ca<=0) continue; }
+    else { if(m.tot<=0) continue; }
+    if(filterPi){ const p=m.pi*100; if(RPIMIN!==null&&p<RPIMIN) continue; if(RPIMAX!==null&&p>RPIMAX) continue; }
+    rows.push([k,cl,m]);
+  }
+  const dir=RSORT==='pi'?1:-1, key=RSORT;
+  rows.sort((a,b)=>{ const va=a[2][key]??0, vb=b[2][key]??0; return va===vb?0:(va<vb?-1:1)*dir; });
+  const top=rows.slice(0,200);
+  document.getElementById('reptitle').textContent=`${rows.length.toLocaleString('es')} clientes · mostrando ${top.length} · ${filterLabel()}`;
+  const fmt=m=>{
+    if(RSORT==='ord') return `<div class="big num">${m.ord}</div><div class="sub num">${money(m.ca)} Cashea</div>`;
+    if(RSORT==='pi') return `<div class="big num">${pct(m.pi)}</div><div class="sub num">${money(m.ca)} · ${m.can} fact</div>`;
+    if(RSORT==='ca') return `<div class="big num">${money(m.ca)}</div><div class="sub num">${m.can} fact · ${pct(m.pi)}</div>`;
+    return `<div class="big num">${money(m.tot)}</div><div class="sub num">Cont. ${money(m.tot-m.ca)} · Cash. ${money(m.ca)}</div>`;
+  };
+  document.getElementById('reptable').innerHTML=top.map(([k,cl,m],i)=>`<div class="reprow" data-c="${k}"><div class="rk num">${i+1}</div><div class="rn"><div class="nm">${esc(cl.n||'(sin nombre)')}</div><div class="cd num">C.I. ${esc(cl.r||k)}</div></div><div class="rv">${fmt(m)}</div></div>`).join('')||'<div class="nonep">Sin clientes que cumplan el filtro.</div>';
+  document.getElementById('reptable').querySelectorAll('.reprow').forEach(n=>n.onclick=()=>{ CURR=n.dataset.c; HILITE=null; markConsulta(); dossier(); window.scrollTo({top:0}); });
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>setTab(t.dataset.tab));
 showLock();
 
 </script>
