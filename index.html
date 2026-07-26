@@ -142,9 +142,9 @@ footer b{color:var(--ink2)}
 .repctrl{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;flex-direction:column;gap:12px}
 .repgrp{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .rlab{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700;margin-right:4px}
-.rbtn,.pbtn{background:#fff;border:1px solid var(--line);color:var(--text);font-family:'Inter';font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:20px;cursor:pointer;transition:all .12s}
-.rbtn:hover,.pbtn:hover{border-color:var(--accent)}
-.rbtn.active,.pbtn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.rbtn,.pbtn,.tbtn{background:#fff;border:1px solid var(--line);color:var(--text);font-family:'Inter';font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:20px;cursor:pointer;transition:all .12s}
+.rbtn:hover,.pbtn:hover,.tbtn:hover{border-color:var(--accent)}
+.rbtn.active,.pbtn.active,.tbtn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 .rcustom{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
 .rcustom input{width:56px;border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-family:'Inter';font-size:13px;outline:none;color:var(--text)}
 .rcustom input:focus{border-color:var(--accent)}
@@ -218,7 +218,7 @@ const DRIVE_FILE_ID = '1FI4MNaYJq3UHBltFOeTgapg51EDo_w7m';
   let ENC = null;
   let CLIENTES = {};
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
-let FACIDX = null, FILT = {mode:'all', day:null}, CURR = null, HILITE = null;
+let FACIDX = null, FILT = {mode:'all', day:null}, CURR = null, HILITE = null, ROLE = 'reportes';
 
 const money = n => (typeof n==='number') ? n.toLocaleString('en-US',{style:'currency',currency:'USD'}) : '—';
 const pct = p => (typeof p==='number' && isFinite(p)) ? (p*100).toFixed(1).replace('.0','')+'%' : '—';
@@ -368,13 +368,25 @@ async function fetchEnc(){
   return ENC;
 }
 async function decryptData(enc,user,pass){
+  if(enc.users){
+    const slot=enc.users.find(x=>(x.u||'').toUpperCase()===user.toUpperCase());
+    if(!slot) throw new Error('user');
+    const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(slot.u+'\n'+pass),'PBKDF2',false,['deriveKey']);
+    const ku=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64d(slot.s),iterations:enc.iter,hash:'SHA-1'},km,{name:'AES-CBC',length:256},false,['decrypt']);
+    let dk; try{ dk=await crypto.subtle.decrypt({name:'AES-CBC',iv:b64d(slot.i)},ku,b64d(slot.w)); }catch(e){ throw new Error('pass'); }
+    const dataKey=await crypto.subtle.importKey('raw',new Uint8Array(dk),'AES-CBC',false,['decrypt']);
+    const buf=await crypto.subtle.decrypt({name:'AES-CBC',iv:b64d(enc.iv)},dataKey,b64d(enc.ct));
+    const txt=new TextDecoder().decode(buf);
+    if(txt.slice(0,6)!=='HCCv1\n') throw new Error('pass');
+    return {role:slot.r||'reportes', data:JSON.parse(txt.slice(6))};
+  }
   const salt=b64d(enc.salt), iv=b64d(enc.iv), ct=b64d(enc.ct);
   const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(user+'\n'+pass),'PBKDF2',false,['deriveKey']);
   const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:enc.iter,hash:'SHA-1'},km,{name:'AES-CBC',length:256},false,['decrypt']);
   const buf=await crypto.subtle.decrypt({name:'AES-CBC',iv},key,ct);
   const txt=new TextDecoder().decode(buf);
-  if(txt.slice(0,6)!=='HCCv1\n') throw new Error('bad');
-  return JSON.parse(txt.slice(6));
+  if(txt.slice(0,6)!=='HCCv1\n') throw new Error('pass');
+  return {role:'reportes', data:JSON.parse(txt.slice(6))};
 }
 function showLock(){ const l=document.getElementById('lock'); l.style.display='flex'; document.getElementById('luser').focus(); }
 async function doLogin(){
@@ -384,14 +396,15 @@ async function doLogin(){
   let enc;
   try{ msg.textContent='Descargando datos...'; enc=await fetchEnc(); }
   catch(e){ msg.style.color='var(--fin)'; msg.textContent='No se pudieron descargar los datos (revisa conexión / API key).'; return; }
-  try{ msg.textContent='Descifrando...'; const data=await decryptData(enc,u,p); CLIENTES=data.clientes; FACIDX=null; document.getElementById('lock').style.display='none'; empty(); }
-  catch(e){ msg.style.color='var(--fin)'; msg.textContent='Usuario o contraseña incorrectos.'; }
+  try{ msg.textContent='Descifrando...'; const res=await decryptData(enc,u,p); CLIENTES=res.data.clientes; FACIDX=null; ROLE=res.role; applyRole(); document.getElementById('lock').style.display='none'; empty(); }
+  catch(e){ msg.style.color='var(--fin)'; msg.textContent=(e&&e.message==='user')?'Usuario no encontrado.':'Usuario o contraseña incorrectos.'; }
 }
 document.getElementById('lbtn').onclick=doLogin;
 document.getElementById('lpass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 document.getElementById('luser').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('lpass').focus(); });
 // ===== Reportes =====
-let MODE='consulta', RSORT='tot', RPIMIN=null, RPIMAX=null;
+let MODE='consulta', RSORT='tot', RPIMIN=null, RPIMAX=null, RTYPE='all';
+function clientType(r){ const c=(r||'').trim().charAt(0).toUpperCase(); if(c==='V'||c==='E'||c==='I'||c==='P'||c==='W'||c===''||(c>='0'&&c<='9')) return 'natural'; return 'juridico'; }
 function metrics(cl){
   const p=predicate(); let tot=0,ca=0,can=0,vt=0,pc=0,ord=0;
   for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; tot+=r[2]; if(r[3]){ca+=r[2];can++;} }
@@ -400,7 +413,8 @@ function metrics(cl){
 }
 function markConsulta(){ MODE='consulta'; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='consulta')); }
 function refresh(){ if(MODE==='reportes') renderRepTable(); else render(); }
-function setTab(m){ MODE=m; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===m)); if(m==='reportes') enterReportes(); else render(); }
+function setTab(m){ if(m==='reportes' && ROLE!=='reportes') return; MODE=m; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===m)); if(m==='reportes') enterReportes(); else render(); }
+function applyRole(){ const rt=document.querySelector('.tab[data-tab="reportes"]'); if(rt) rt.style.display=(ROLE==='reportes')?'':'none'; if(ROLE!=='reportes' && MODE==='reportes'){ markConsulta(); render(); } }
 function enterReportes(){
   el.innerHTML=`<div class="repctrl">
     <div class="repgrp"><span class="rlab">Ordenar por</span>
@@ -408,6 +422,10 @@ function enterReportes(){
       <button class="rbtn" data-sort="ca">Cashea $</button>
       <button class="rbtn" data-sort="ord">Nº órdenes</button>
       <button class="rbtn" data-sort="pi">% inicial (menor→mayor)</button></div>
+    <div class="repgrp"><span class="rlab">Tipo</span>
+      <button class="tbtn active" data-type="all">Todos</button>
+      <button class="tbtn" data-type="juridico">Jurídico (J, G, C, F, A, L…)</button>
+      <button class="tbtn" data-type="natural">Persona natural (V, E, I, P, W / sin letra)</button></div>
     <div class="repgrp"><span class="rlab">% inicial</span>
       <button class="pbtn active" data-min="" data-max="">Todos</button>
       <button class="pbtn" data-min="0" data-max="0.5">0%</button>
@@ -418,6 +436,7 @@ function enterReportes(){
       <span class="rcustom">mín<input id="pmin" type="number" min="0" max="100" inputmode="numeric">máx<input id="pmax" type="number" min="0" max="100" inputmode="numeric">%</span></div>
   </div><div class="reptitle" id="reptitle"></div><div id="reptable"></div>`;
   el.querySelectorAll('.rbtn').forEach(b=>b.onclick=()=>{ RSORT=b.dataset.sort; el.querySelectorAll('.rbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
+  el.querySelectorAll('.tbtn').forEach(b=>b.onclick=()=>{ RTYPE=b.dataset.type; el.querySelectorAll('.tbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.pbtn').forEach(b=>b.onclick=()=>{ RPIMIN=b.dataset.min===''?null:+b.dataset.min; RPIMAX=b.dataset.max===''?null:+b.dataset.max; const a=document.getElementById('pmin'),c=document.getElementById('pmax'); if(a)a.value=''; if(c)c.value=''; el.querySelectorAll('.pbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   const pmin=document.getElementById('pmin'),pmax=document.getElementById('pmax');
   const onC=()=>{ RPIMIN=pmin.value===''?null:+pmin.value; RPIMAX=pmax.value===''?null:+pmax.value; el.querySelectorAll('.pbtn').forEach(x=>x.classList.remove('active')); renderRepTable(); };
@@ -427,7 +446,9 @@ function enterReportes(){
 function renderRepTable(){
   const filterPi=(RPIMIN!==null||RPIMAX!==null); const rows=[];
   for(const k in CLIENTES){
-    const cl=CLIENTES[k], m=metrics(cl);
+    const cl=CLIENTES[k];
+    if(RTYPE!=='all' && clientType(cl.r)!==RTYPE) continue;
+    const m=metrics(cl);
     if(RSORT==='pi'||filterPi){ if(m.pi===null) continue; }
     else if(RSORT==='ord'){ if(m.ord===0) continue; }
     else if(RSORT==='ca'){ if(m.ca<=0) continue; }
