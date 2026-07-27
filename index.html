@@ -219,7 +219,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v6 (inicial comercial)</div>
+    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v8 (clasifica por inicial menor)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -294,7 +294,7 @@ function render(){
 function empty(){ el.innerHTML=`<div class="empty"><div class="big">Consulta un cliente</div><p>Busca por <b>cédula</b> o <b>nombre</b> (o usa la casilla de <b>Nº de factura</b>). Verás el total comprado en tienda, cuánto de contado y cuánto por Cashea, y el detalle de crédito. Usa el <b>período</b> de arriba para acotar por fecha.</p></div>`; }
 function noResult(rawq){ el.innerHTML=`<div class="empty"><div class="big">Sin coincidencias</div><p>Nada coincide con <span class="kbd">${esc(rawq)}</span>. Prueba la cédula, el nombre o el Nº de factura.</p></div>`; }
 function list(matches){
-  el.innerHTML=`<div class="orders-title">${matches.length} clientes encontrados${FILT.mode!=='all'?` · ${filterLabel()}`:''}</div><div class="reslist">${matches.map(([c,cl])=>{const t=totals(cl);return `<div class="resitem" data-c="${c}"><div><div class="nm">${esc(cl.n||'(sin nombre)')}${nivelTag(piAll(cl))}</div><div class="cd num">C.I./RIF ${esc(cl.r||c)}</div></div><div class="rr num">${money(t.tot)} · ${t.nf} fact ›</div></div>`;}).join('')}</div>`;
+  el.innerHTML=`<div class="orders-title">${matches.length} clientes encontrados${FILT.mode!=='all'?` · ${filterLabel()}`:''}</div><div class="reslist">${matches.map(([c,cl])=>{const t=totals(cl);return `<div class="resitem" data-c="${c}"><div><div class="nm">${esc(cl.n||'(sin nombre)')}${nivelTags(cl.orders)}</div><div class="cd num">C.I./RIF ${esc(cl.r||c)}</div></div><div class="rr num">${money(t.tot)} · ${t.nf} fact ›</div></div>`;}).join('')}</div>`;
   el.querySelectorAll('.resitem').forEach(n=>n.onclick=()=>{ hideAC(); q.value=''; clr.style.display='none'; CURR=n.dataset.c; HILITE=null; dossier(); window.scrollTo({top:0}); });
 }
 function dossier(){
@@ -304,7 +304,7 @@ function dossier(){
   const _vt=O.reduce((a,o)=>a+(typeof o.vt==='number'?o.vt:0),0), _pc=O.reduce((a,o)=>a+(typeof o.pc==='number'?o.pc:0),0); const cliPi=_vt?_pc/_vt:null;
   el.innerHTML=`
     <div class="dossier-head">
-      <div><div class="name">${esc(cl.n||'(sin nombre)')}${nivelBadge(nivelInicial(cliPi),cliPi)}</div>
+      <div><div class="name">${esc(cl.n||'(sin nombre)')}${nivelBadges(cl.orders)}</div>
         <div class="ced num">C.I./RIF <b>${esc(cl.r||CURR)}</b> &nbsp;·&nbsp; Código cliente <b>${esc(cl.c||'—')}</b></div></div>
       <button class="back" id="back">‹ Nueva búsqueda</button>
     </div>
@@ -396,7 +396,7 @@ function suggest(){
   const m=renderBody(raw);
   const top=m.slice(0,25); ACLIST=top; ACSEL=-1;
   if(!top.length){ ac.innerHTML='<div class="acnone">Sin coincidencias</div>'; ac.style.display='block'; return; }
-  ac.innerHTML=top.map(([k,c])=>`<div class="acitem" data-c="${k}"><div class="nm">${esc(c.n||'(sin nombre)')}${nivelTag(piAll(c))}</div><div class="cd num">C.I./RIF ${esc(c.r||k)}</div></div>`).join('');
+  ac.innerHTML=top.map(([k,c])=>`<div class="acitem" data-c="${k}"><div class="nm">${esc(c.n||'(sin nombre)')}${nivelTags(c.orders)}</div><div class="cd num">C.I./RIF ${esc(c.r||k)}</div></div>`).join('');
   ac.style.display='block';
   ac.querySelectorAll('.acitem').forEach(n=>n.onclick=()=>pickAC(n.dataset.c));
 }
@@ -473,11 +473,14 @@ function clientType(r){ const c=(r||'').trim().charAt(0).toUpperCase(); if(c==='
 function nivelInicial(pi){ if(pi===null||pi===undefined) return null; const p=pi*100; if(p>=45)return 1; if(p>=35)return 2; if(p>=25)return 3; if(p>=15)return 4; if(p>=5)return 5; return 6; }
 function nivelBadge(n,pi){ if(n===null) return '<span class="nivbadge nsc">Sin Cashea</span>'; return `<span class="nivbadge lvl${n}" title="Nivel segun inicial pagada en Cashea">Nivel ${n} · ${pct(pi)} inicial</span>`; }
 function nivelTag(pi){ const n=nivelInicial(pi); if(n===null) return ''; return `<span class="nivtag lvl${n}">N${n}</span>`; }
+function nivelesDe(orders){ const s=new Set(); for(const o of (orders||[])){ if(typeof o.pi==='number'){ const n=nivelInicial(o.pi); if(n!==null) s.add(n); } } return [...s].sort((a,b)=>a-b); }
+function nivelTags(orders){ return nivelesDe(orders).map(n=>`<span class="nivtag lvl${n}">N${n}</span>`).join(''); }
+function nivelBadges(orders){ const ns=nivelesDe(orders); if(!ns.length) return '<span class="nivbadge nsc">Sin Cashea</span>'; return ns.map(n=>`<span class="nivbadge lvl${n}" title="Nivel segun inicial pagada en Cashea">Nivel ${n}</span>`).join(''); }
 function metrics(cl){
-  const p=predicate(); let tot=0,ca=0,can=0,vt=0,pc=0,ord=0;
+  const p=predicate(); let tot=0,ca=0,can=0,vt=0,pc=0,ord=0,piMin=null;
   for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; tot+=r[2]; if(r[3]){ca+=r[2];can++;} }
-  for(const o of cl.orders){ if(!p(dmyToYmd(o.fc))) continue; ord++; vt+=(o.vt||0); pc+=(o.pc||0); }
-  return {tot:r2(tot),ca:r2(ca),can,ord,pi:vt>0?pc/vt:null};
+  for(const o of cl.orders){ if(!p(dmyToYmd(o.fc))) continue; ord++; vt+=(o.vt||0); pc+=(o.pc||0); if(typeof o.pi==='number' && (piMin===null||o.pi<piMin)) piMin=o.pi; }
+  return {tot:r2(tot),ca:r2(ca),can,ord,pi:piMin};
 }
 function markConsulta(){ MODE='consulta'; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='consulta')); }
 function refresh(){ if(MODE==='reportes'){ renderRepTable(); return; } if(CURR && CLIENTES[CURR]){ dossier(); return; } const rawq=q.value.trim(); if(rawq){ renderBody(rawq); } else { empty(); } }
@@ -530,7 +533,7 @@ function renderRepTable(){
     if(RSORT==='ca') return `<div class="big num">${money(m.ca)}</div><div class="sub num">${m.can} fact · ${pct(m.pi)}</div>`;
     return `<div class="big num">${money(m.tot)}</div><div class="sub num">Cont. ${money(m.tot-m.ca)} · Cash. ${money(m.ca)}</div>`;
   };
-  document.getElementById('reptable').innerHTML=top.map(([k,cl,m],i)=>`<div class="reprow" data-c="${k}"><div class="rk num">${i+1}</div><div class="rn"><div class="nm">${esc(cl.n||'(sin nombre)')}</div><div class="cd num">C.I. ${esc(cl.r||k)}</div></div><div class="rv">${fmt(m)}</div></div>`).join('')||'<div class="nonep">Sin clientes que cumplan el filtro.</div>';
+  document.getElementById('reptable').innerHTML=top.map(([k,cl,m],i)=>`<div class="reprow" data-c="${k}"><div class="rk num">${i+1}</div><div class="rn"><div class="nm">${esc(cl.n||'(sin nombre)')}${nivelTags(cl.orders)}</div><div class="cd num">C.I. ${esc(cl.r||k)}</div></div><div class="rv">${fmt(m)}</div></div>`).join('')||'<div class="nonep">Sin clientes que cumplan el filtro.</div>';
   document.getElementById('reptable').querySelectorAll('.reprow').forEach(n=>n.onclick=()=>{ CURR=n.dataset.c; HILITE=null; markConsulta(); dossier(); window.scrollTo({top:0}); });
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>setTab(t.dataset.tab));
