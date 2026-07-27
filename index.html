@@ -219,7 +219,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v8 (clasifica por inicial menor)</div>
+    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v9 (filtro Nivel N1-N6)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -493,19 +493,22 @@ function enterReportes(){
       <button class="rbtn" data-sort="ca">Cashea $</button>
       <button class="rbtn" data-sort="ord">Nº órdenes</button>
       <button class="rbtn" data-sort="pi">% inicial (menor→mayor)</button></div>
-    <div class="repgrp"><span class="rlab">Tipo</span>
+    <div class="repgrp"><span class="rlab">Tipo cliente</span>
       <button class="tbtn active" data-type="all">Todos</button>
-      <button class="tbtn" data-type="juridico">Jurídico (J, G, C, F, A, L…)</button>
-      <button class="tbtn" data-type="natural">Persona natural (V, E, I, P, W / sin letra)</button></div>
-    <div class="repgrp"><span class="rlab">Inicial</span>
-      <button class="pbtn active" data-min="" data-max="">Todos</button>
-      <button class="pbtn ib6" data-min="0" data-max="5">Sin Inicial</button>
-      <button class="pbtn ib4" data-min="10" data-max="25">Inicial Baja</button>
-      <button class="pbtn ib3" data-min="30" data-max="40">Inicial Estándar</button>
-      <button class="pbtn ib1" data-min="50" data-max="1000">Inicial Preferencial</button></div>
+      <button class="tbtn" data-type="juridico">Jurídico</button>
+      <button class="tbtn" data-type="natural">Persona natural</button></div>
+    <div class="repgrp"><span class="rlab">Nivel</span>
+      <button class="nbtn active" data-niv="all">Todos</button>
+      <button class="nbtn lvl1" data-niv="1">N1</button>
+      <button class="nbtn lvl2" data-niv="2">N2</button>
+      <button class="nbtn lvl3" data-niv="3">N3</button>
+      <button class="nbtn lvl4" data-niv="4">N4</button>
+      <button class="nbtn lvl5" data-niv="5">N5</button>
+      <button class="nbtn lvl6" data-niv="6">N6</button></div>
   </div><div class="reptitle" id="reptitle"></div><div id="reptable"></div>`;
   el.querySelectorAll('.rbtn').forEach(b=>b.onclick=()=>{ RSORT=b.dataset.sort; el.querySelectorAll('.rbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.tbtn').forEach(b=>b.onclick=()=>{ RTYPE=b.dataset.type; el.querySelectorAll('.tbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
+  el.querySelectorAll('.nbtn').forEach(b=>b.onclick=()=>{ RNIVEL=b.dataset.niv; el.querySelectorAll('.nbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.pbtn').forEach(b=>b.onclick=()=>{ RPIMIN=b.dataset.min===''?null:+b.dataset.min; RPIMAX=b.dataset.max===''?null:+b.dataset.max; const a=document.getElementById('pmin'),c=document.getElementById('pmax'); if(a)a.value=''; if(c)c.value=''; el.querySelectorAll('.pbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   renderRepTable();
 }
