@@ -219,7 +219,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v9 (filtro Nivel N1-N6)</div>
+    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v10 (Nivel multi-selección)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -508,7 +508,13 @@ function enterReportes(){
   </div><div class="reptitle" id="reptitle"></div><div id="reptable"></div>`;
   el.querySelectorAll('.rbtn').forEach(b=>b.onclick=()=>{ RSORT=b.dataset.sort; el.querySelectorAll('.rbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.tbtn').forEach(b=>b.onclick=()=>{ RTYPE=b.dataset.type; el.querySelectorAll('.tbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
-  el.querySelectorAll('.nbtn').forEach(b=>b.onclick=()=>{ RNIVEL=b.dataset.niv; el.querySelectorAll('.nbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
+  el.querySelectorAll('.nbtn').forEach(b=>b.onclick=()=>{
+    const v=b.dataset.niv;
+    if(v==='all'){ RNIVEL='all'; }
+    else { let set=RNIVEL==='all'?[]:RNIVEL.split(',').filter(Boolean); const i=set.indexOf(v); if(i>=0) set.splice(i,1); else set.push(v); RNIVEL=set.length?set.join(','):'all'; }
+    el.querySelectorAll('.nbtn').forEach(x=>{ const xv=x.dataset.niv; x.classList.toggle('active', RNIVEL==='all' ? xv==='all' : (xv!=='all' && RNIVEL.split(',').includes(xv))); });
+    renderRepTable();
+  });
   el.querySelectorAll('.pbtn').forEach(b=>b.onclick=()=>{ RPIMIN=b.dataset.min===''?null:+b.dataset.min; RPIMAX=b.dataset.max===''?null:+b.dataset.max; const a=document.getElementById('pmin'),c=document.getElementById('pmax'); if(a)a.value=''; if(c)c.value=''; el.querySelectorAll('.pbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   renderRepTable();
 }
