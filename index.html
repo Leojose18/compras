@@ -223,7 +223,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v11 (totales de ventas)</div>
+    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v12 (Nº facturas)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -481,10 +481,10 @@ function nivelesDe(orders){ const s=new Set(); for(const o of (orders||[])){ if(
 function nivelTags(orders){ return nivelesDe(orders).map(n=>`<span class="nivtag lvl${n}">N${n}</span>`).join(''); }
 function nivelBadges(orders){ const ns=nivelesDe(orders); if(!ns.length) return '<span class="nivbadge nsc">Sin Cashea</span>'; return ns.map(n=>`<span class="nivbadge lvl${n}" title="Nivel segun inicial pagada en Cashea">Nivel ${n}</span>`).join(''); }
 function metrics(cl){
-  const p=predicate(); let tot=0,ca=0,can=0,vt=0,pc=0,ord=0,piMin=null;
-  for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; tot+=r[2]; if(r[3]){ca+=r[2];can++;} }
+  const p=predicate(); let tot=0,ca=0,can=0,vt=0,pc=0,ord=0,piMin=null,nf=0;
+  for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; tot+=r[2]; nf++; if(r[3]){ca+=r[2];can++;} }
   for(const o of cl.orders){ if(!p(dmyToYmd(o.fc))) continue; ord++; vt+=(o.vt||0); pc+=(o.pc||0); if(typeof o.pi==='number' && (piMin===null||o.pi<piMin)) piMin=o.pi; }
-  return {tot:r2(tot),ca:r2(ca),can,ord,pi:piMin};
+  return {tot:r2(tot),ca:r2(ca),can,ord,pi:piMin,nf};
 }
 function markConsulta(){ MODE='consulta'; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='consulta')); }
 function refresh(){ if(MODE==='reportes'){ renderRepTable(); return; } if(CURR && CLIENTES[CURR]){ dossier(); return; } const rawq=q.value.trim(); if(rawq){ renderBody(rawq); } else { empty(); } }
