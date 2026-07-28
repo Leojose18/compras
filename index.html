@@ -38,7 +38,7 @@ header{position:sticky;top:0;z-index:20;background:var(--ink);color:#fff;box-sha
 .fday{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.5);border-radius:20px;padding:3px 10px 3px 12px}
 .fday.active{border-color:#fff}
 .fday .dl{font-size:12.5px;color:#fff}
-#fdate{background:none;border:none;color:#fff;font-family:'Inter';font-size:12.5px;color-scheme:dark;outline:none;cursor:pointer}
+#fdate1,#fdate2{background:none;border:none;color:#fff;font-family:'Inter';font-size:12.5px;color-scheme:dark;outline:none;cursor:pointer}
 main{max-width:1040px;margin:0 auto;padding:24px 22px 60px}
 .empty{text-align:center;padding:64px 20px;color:var(--muted)}
 .empty .big{font-family:'Space Grotesk';font-size:26px;color:var(--ink2);margin-bottom:10px}
@@ -227,7 +227,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v15 (sin ordenar)</div>
+    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v16 (rango fechas)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -235,7 +235,7 @@ footer b{color:var(--ink2)}
       <button class="fbtn" data-mode="6m">6 meses</button>
       <button class="fbtn" data-mode="3m">3 meses</button>
       <button class="fbtn" data-mode="1m">1 mes</button>
-      <span class="fday" id="fdaywrap"><span class="dl">Día</span><input type="date" id="fdate"></span>
+      <span class="fday" id="fdaywrap"><span class="dl">Rango</span><input type="date" id="fdate1"><span class="dl" style="opacity:.6">→</span><input type="date" id="fdate2"></span>
     </div>
     <div class="tabs">
       <button class="tab active" data-tab="consulta">Consulta</button>
@@ -254,7 +254,7 @@ const DRIVE_FILE_ID = '1FI4MNaYJq3UHBltFOeTgapg51EDo_w7m';
   let ENC = null;
   let CLIENTES = {};
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
-let FACIDX = null, FILT = {mode:'all', day:null}, CURR = null, HILITE = null, ROLE = 'reportes';
+let FACIDX = null, FILT = {mode:'all', day1:null, day2:null}, CURR = null, HILITE = null, ROLE = 'reportes';
 
 const money = n => (typeof n==='number') ? n.toLocaleString('en-US',{style:'currency',currency:'USD'}) : '—';
 const pct = p => (typeof p==='number' && isFinite(p)) ? (p*100).toFixed(1).replace('.0','')+'%' : '—';
@@ -270,12 +270,12 @@ function facIndex(){ if(FACIDX) return FACIDX; FACIDX={}; for(const k in CLIENTE
 
 function predicate(){
   if(FILT.mode==='all') return ()=>true;
-  if(FILT.mode==='day'){ const dd=FILT.day; return y=>y===dd; }
+  if(FILT.mode==='day'){ const d1=FILT.day1, d2=FILT.day2; return y=>y>=d1 && y<=d2; }
   const map={'1m':1,'3m':3,'6m':6,'1y':12}; const d=new Date(); d.setMonth(d.getMonth()-map[FILT.mode]); const th=jsYmd(d);
   return y=>y>=th;
 }
 function filterLabel(){
-  if(FILT.mode==='day') return FILT.day?('el '+ymdFmt(FILT.day)):'un día';
+  if(FILT.mode==='day') return (FILT.day1&&FILT.day2)?(FILT.day1===FILT.day2?('el '+ymdFmt(FILT.day1)):('del '+ymdFmt(FILT.day1)+' al '+ymdFmt(FILT.day2))):'un rango';
   return {all:'histórico completo','1y':'último año','6m':'últimos 6 meses','3m':'últimos 3 meses','1m':'último mes'}[FILT.mode];
 }
 function totals(cl){
@@ -376,11 +376,21 @@ function cuotasBlock(o){
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // --- filtros ---
-const fbtns=[...document.querySelectorAll('.fbtn')], fdate=document.getElementById('fdate'), fdaywrap=document.getElementById('fdaywrap');
-function paintFilter(){ fbtns.forEach(b=>b.classList.toggle('active', FILT.mode===b.dataset.mode)); fdaywrap.classList.toggle('active', FILT.mode==='day'); if(FILT.mode!=='day') fdate.value=''; }
-function setFilter(mode){ FILT.mode=mode; if(mode!=='day') FILT.day=null; paintFilter(); }
+const fbtns=[...document.querySelectorAll('.fbtn')], fdate1=document.getElementById('fdate1'), fdate2=document.getElementById('fdate2'), fdaywrap=document.getElementById('fdaywrap');
+function paintFilter(){ fbtns.forEach(b=>b.classList.toggle('active', FILT.mode===b.dataset.mode)); fdaywrap.classList.toggle('active', FILT.mode==='day'); if(FILT.mode!=='day'){ fdate1.value=''; fdate2.value=''; } }
+function setFilter(mode){ FILT.mode=mode; if(mode!=='day'){ FILT.day1=null; FILT.day2=null; } paintFilter(); }
 fbtns.forEach(b=>b.onclick=()=>{ setFilter(b.dataset.mode); refresh(); });
-fdate.addEventListener('change',()=>{ if(!fdate.value){ setFilter('all'); refresh(); return; } const p=fdate.value.split('-'); FILT.mode='day'; FILT.day=+(p[0]+p[1]+p[2]); paintFilter(); refresh(); });
+function ymdOf(v){ if(!v) return null; const p=v.split('-'); return +(p[0]+p[1]+p[2]); }
+function applyRange(){
+  let a=ymdOf(fdate1.value), b=ymdOf(fdate2.value);
+  if(!a && !b){ setFilter('all'); refresh(); return; }
+  if(a && !b) b=a;
+  if(!a && b) a=b;
+  if(a>b){ const t=a; a=b; b=t; }
+  FILT.mode='day'; FILT.day1=a; FILT.day2=b; paintFilter(); refresh();
+}
+fdate1.addEventListener('change', applyRange);
+fdate2.addEventListener('change', applyRange);
 
 function piAll(cl){ let vt=0,pc=0; for(const o of (cl.orders||[])){ vt+=(typeof o.vt==='number'?o.vt:0); pc+=(typeof o.pc==='number'?o.pc:0);} return vt?pc/vt:null; }
 function hideAC(){ ac.style.display='none'; ACSEL=-1; }
