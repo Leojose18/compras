@@ -67,6 +67,7 @@ main{max-width:1040px;margin:0 auto;padding:24px 22px 60px}
 .compras .totlab .per{color:var(--accent)}
 .compras .totval{font-family:'Space Grotesk';font-size:38px;font-weight:700;line-height:1;margin-top:5px;color:#fff}
 .compras .totn{font-size:12.5px;color:rgba(255,255,255,.75);margin:6px 0 18px}
+.compras .totdev{font-size:12px;color:#FFB4A2;margin:-12px 0 16px;font-weight:600}
 .split{display:flex;height:14px;border-radius:8px;overflow:hidden;background:#3E3232}
 .split .seg{height:100%}
 .split .seg.co{background:var(--contado)}
@@ -182,6 +183,7 @@ footer b{color:var(--ink2)}
 .repsum .rs{flex:1;min-width:150px;background:#241A1A;color:#fff;border-radius:12px;padding:12px 16px}
 .repsum .rsl{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:rgba(255,255,255,.75);font-weight:600}
 .repsum .rsv{font-family:'Space Grotesk';font-weight:700;font-size:20px;margin-top:4px}
+.repsum .rsv.rsd{color:#C0392B}
 .pbtn.ib6{border-left:5px solid #CC212A}
 .pbtn.ib4{border-left:5px solid #D9772E}
 .pbtn.ib3{border-left:5px solid #C9962B}
@@ -223,7 +225,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v12 (Nº facturas)</div>
+    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v13 (devoluciones)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -275,9 +277,9 @@ function filterLabel(){
   return {all:'histórico completo','1y':'último año','6m':'últimos 6 meses','3m':'últimos 3 meses','1m':'último mes'}[FILT.mode];
 }
 function totals(cl){
-  const p=predicate(); let tot=0,nf=0,ca=0,can=0,an=0; const inv=cl.inv;
-  for(let i=0;i<inv.length;i++){ const r=inv[i]; if(!p(r[1])) continue; if(r[4]){an++;continue;} tot+=r[2];nf++; if(r[3]){ca+=r[2];can++;} }
-  return {tot:r2(tot),nf,ca:r2(ca),can,co:r2(tot-ca),con:nf-can,an};
+  const p=predicate(); let tot=0,nf=0,ca=0,can=0,an=0,dev=0,nd=0; const inv=cl.inv;
+  for(let i=0;i<inv.length;i++){ const r=inv[i]; if(!p(r[1])) continue; if(r[4]){an++;continue;} if(r[2]<0){ dev+=r[2]; nd++; tot+=r[2]; continue; } tot+=r[2];nf++; if(r[3]){ca+=r[2];can++;} }
+  return {tot:r2(tot),nf,ca:r2(ca),can,co:r2(tot-ca),con:nf-can,an,dev:r2(dev),nd};
 }
 
 const el=document.getElementById('main'), q=document.getElementById('q'), clr=document.getElementById('clr'), qf=document.getElementById('qf'), clrf=document.getElementById('clrf'), ac=document.getElementById('ac');
@@ -316,7 +318,7 @@ function dossier(){
     <div class="compras">
       <div class="totlab">Total comprado en tienda <span class="per">· ${filterLabel()}</span></div>
       <div class="totval num">${money(t.tot)}</div>
-      <div class="totn num">${t.nf} factura${t.nf===1?'':'s'}${t.an?` · ${t.an} anulada${t.an===1?'':'s'} excluida${t.an===1?'':'s'}`:''}</div>
+      <div class="totn num">${t.nf} factura${t.nf===1?'':'s'}${t.an?` · ${t.an} anulada${t.an===1?'':'s'} excluida${t.an===1?'':'s'}`:''}</div>${t.nd?`<div class="totdev num">Neto de ${t.nd} devolución${t.nd===1?'':'es'} · ${money(Math.abs(t.dev))} restado${t.nd===1?'':'s'}</div>`:''}
       <div class="split"><div class="seg co" style="width:${coPct}%"></div><div class="seg ca" style="width:${caPct}%"></div></div>
       <div class="legend">
         <div class="leg"><div class="row"><span class="sw co"></span><span class="k">Contado (sin Cashea)</span></div>
@@ -481,10 +483,10 @@ function nivelesDe(orders){ const s=new Set(); for(const o of (orders||[])){ if(
 function nivelTags(orders){ return nivelesDe(orders).map(n=>`<span class="nivtag lvl${n}">N${n}</span>`).join(''); }
 function nivelBadges(orders){ const ns=nivelesDe(orders); if(!ns.length) return '<span class="nivbadge nsc">Sin Cashea</span>'; return ns.map(n=>`<span class="nivbadge lvl${n}" title="Nivel segun inicial pagada en Cashea">Nivel ${n}</span>`).join(''); }
 function metrics(cl){
-  const p=predicate(); let tot=0,ca=0,can=0,vt=0,pc=0,ord=0,piMin=null,nf=0;
-  for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; tot+=r[2]; nf++; if(r[3]){ca+=r[2];can++;} }
+  const p=predicate(); let tot=0,ca=0,can=0,vt=0,pc=0,ord=0,piMin=null,nf=0,dev=0,nd=0;
+  for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; if(r[2]<0){ dev+=r[2]; nd++; tot+=r[2]; continue; } tot+=r[2]; nf++; if(r[3]){ca+=r[2];can++;} }
   for(const o of cl.orders){ if(!p(dmyToYmd(o.fc))) continue; ord++; vt+=(o.vt||0); pc+=(o.pc||0); if(typeof o.pi==='number' && (piMin===null||o.pi<piMin)) piMin=o.pi; }
-  return {tot:r2(tot),ca:r2(ca),can,ord,pi:piMin,nf};
+  return {tot:r2(tot),ca:r2(ca),can,ord,pi:piMin,nf,dev:r2(dev),nd};
 }
 function markConsulta(){ MODE='consulta'; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='consulta')); }
 function refresh(){ if(MODE==='reportes'){ renderRepTable(); return; } if(CURR && CLIENTES[CURR]){ dossier(); return; } const rawq=q.value.trim(); if(rawq){ renderBody(rawq); } else { empty(); } }
@@ -523,14 +525,14 @@ function enterReportes(){
   renderRepTable();
 }
 function renderRepTable(){
-  const filterPi=(RPIMIN!==null||RPIMAX!==null); const rows=[]; let sumV=0, sumN=0;
+  const filterPi=(RPIMIN!==null||RPIMAX!==null); const rows=[]; let sumV=0, sumN=0, sumD=0;
   for(const k in CLIENTES){
     const cl=CLIENTES[k];
     if(RTYPE!=='all' && clientType(cl.r)!==RTYPE) continue;
     const m=metrics(cl);
     if(RNIVEL!=='all'){ if(m.pi===null || !RNIVEL.split(',').includes(String(nivelInicial(m.pi)))) continue; }
     if(filterPi){ if(m.pi===null) continue; const p=m.pi*100; if(RPIMIN!==null&&p<RPIMIN) continue; if(RPIMAX!==null&&p>RPIMAX) continue; }
-    sumV+=m.tot; sumN+=m.nf;
+    sumV+=m.tot; sumN+=m.nf; sumD+=m.dev;
     if(RSORT==='pi'){ if(m.pi===null) continue; }
     else if(RSORT==='ord'){ if(m.ord===0) continue; }
     else if(RSORT==='ca'){ if(m.ca<=0) continue; }
@@ -541,7 +543,7 @@ function renderRepTable(){
   rows.sort((a,b)=>{ const va=a[2][key]??0, vb=b[2][key]??0; return va===vb?0:(va<vb?-1:1)*dir; });
   const top=rows.slice(0,200);
   const prom = sumN>0 ? sumV/sumN : 0;
-  document.getElementById('repsum').innerHTML=`<div class="rs"><div class="rsl">Ventas (fact. no anuladas)</div><div class="rsv">${money(sumV)}</div></div><div class="rs"><div class="rsl">Nº de facturas</div><div class="rsv">${sumN.toLocaleString('es')}</div></div><div class="rs"><div class="rsl">Promedio por factura</div><div class="rsv">${money(prom)}</div></div>`;
+  document.getElementById('repsum').innerHTML=`<div class="rs"><div class="rsl">Ventas netas (menos devol.)</div><div class="rsv">${money(sumV)}</div></div><div class="rs"><div class="rsl">Devoluciones</div><div class="rsv rsd">${money(Math.abs(sumD))}</div></div><div class="rs"><div class="rsl">Nº de facturas</div><div class="rsv">${sumN.toLocaleString('es')}</div></div><div class="rs"><div class="rsl">Promedio por factura</div><div class="rsv">${money(prom)}</div></div>`;
   document.getElementById('reptitle').textContent=`${rows.length.toLocaleString('es')} clientes · mostrando ${top.length} · ${filterLabel()}`;
   const fmt=m=>{
     if(RSORT==='ord') return `<div class="big num">${m.ord}</div><div class="sub num">${money(m.ca)} Cashea</div>`;
