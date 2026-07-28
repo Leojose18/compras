@@ -178,6 +178,10 @@ footer b{color:var(--ink2)}
 .acitem .nm{font-family:'Space Grotesk';font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .acitem .cd{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .acnone{padding:12px 14px;color:var(--muted);font-size:13px}
+.repsum{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.repsum .rs{flex:1;min-width:150px;background:#241A1A;color:#fff;border-radius:12px;padding:12px 16px}
+.repsum .rsl{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:rgba(255,255,255,.75);font-weight:600}
+.repsum .rsv{font-family:'Space Grotesk';font-weight:700;font-size:20px;margin-top:4px}
 .pbtn.ib6{border-left:5px solid #CC212A}
 .pbtn.ib4{border-left:5px solid #D9772E}
 .pbtn.ib3{border-left:5px solid #C9962B}
@@ -219,7 +223,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v10 (Nivel multi-selección)</div>
+    <div class="hint">38.154 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 30/06/2026 · v11 (totales de ventas)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -505,7 +509,7 @@ function enterReportes(){
       <button class="nbtn lvl4" data-niv="4">N4</button>
       <button class="nbtn lvl5" data-niv="5">N5</button>
       <button class="nbtn lvl6" data-niv="6">N6</button></div>
-  </div><div class="reptitle" id="reptitle"></div><div id="reptable"></div>`;
+  </div><div class="repsum" id="repsum"></div><div class="reptitle" id="reptitle"></div><div id="reptable"></div>`;
   el.querySelectorAll('.rbtn').forEach(b=>b.onclick=()=>{ RSORT=b.dataset.sort; el.querySelectorAll('.rbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.tbtn').forEach(b=>b.onclick=()=>{ RTYPE=b.dataset.type; el.querySelectorAll('.tbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.nbtn').forEach(b=>b.onclick=()=>{
@@ -519,22 +523,25 @@ function enterReportes(){
   renderRepTable();
 }
 function renderRepTable(){
-  const filterPi=(RPIMIN!==null||RPIMAX!==null); const rows=[];
+  const filterPi=(RPIMIN!==null||RPIMAX!==null); const rows=[]; let sumV=0, sumN=0;
   for(const k in CLIENTES){
     const cl=CLIENTES[k];
     if(RTYPE!=='all' && clientType(cl.r)!==RTYPE) continue;
     const m=metrics(cl);
-    if(RSORT==='pi'||filterPi){ if(m.pi===null) continue; }
+    if(RNIVEL!=='all'){ if(m.pi===null || !RNIVEL.split(',').includes(String(nivelInicial(m.pi)))) continue; }
+    if(filterPi){ if(m.pi===null) continue; const p=m.pi*100; if(RPIMIN!==null&&p<RPIMIN) continue; if(RPIMAX!==null&&p>RPIMAX) continue; }
+    sumV+=m.tot; sumN+=m.nf;
+    if(RSORT==='pi'){ if(m.pi===null) continue; }
     else if(RSORT==='ord'){ if(m.ord===0) continue; }
     else if(RSORT==='ca'){ if(m.ca<=0) continue; }
     else { if(m.tot<=0) continue; }
-    if(filterPi){ const p=m.pi*100; if(RPIMIN!==null&&p<RPIMIN) continue; if(RPIMAX!==null&&p>RPIMAX) continue; }
-    if(RNIVEL!=='all'){ if(!RNIVEL.split(',').includes(String(nivelInicial(m.pi)))) continue; }
     rows.push([k,cl,m]);
   }
   const dir=RSORT==='pi'?1:-1, key=RSORT;
   rows.sort((a,b)=>{ const va=a[2][key]??0, vb=b[2][key]??0; return va===vb?0:(va<vb?-1:1)*dir; });
   const top=rows.slice(0,200);
+  const prom = sumN>0 ? sumV/sumN : 0;
+  document.getElementById('repsum').innerHTML=`<div class="rs"><div class="rsl">Ventas (fact. no anuladas)</div><div class="rsv">${money(sumV)}</div></div><div class="rs"><div class="rsl">Nº de facturas</div><div class="rsv">${sumN.toLocaleString('es')}</div></div><div class="rs"><div class="rsl">Promedio por factura</div><div class="rsv">${money(prom)}</div></div>`;
   document.getElementById('reptitle').textContent=`${rows.length.toLocaleString('es')} clientes · mostrando ${top.length} · ${filterLabel()}`;
   const fmt=m=>{
     if(RSORT==='ord') return `<div class="big num">${m.ord}</div><div class="sub num">${money(m.ca)} Cashea</div>`;
