@@ -49,8 +49,8 @@ header{position:sticky;top:0;z-index:20;background:var(--ink);color:#fff;box-sha
 .caldow span{text-align:center;font-size:11px;color:rgba(255,255,255,.5);padding:3px 0}
 .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
 .cald{height:38px;display:flex;align-items:center;justify-content:center;font-size:14px;border-radius:9px;cursor:pointer;font-family:'Inter';color:#fff;user-select:none}
-.cald.empty{cursor:default}
-.cald:not(.empty):active{background:rgba(255,255,255,.2)}
+.cald.cald-empty{cursor:default}
+.cald:not(.cald-empty):active{background:rgba(255,255,255,.2)}
 .cald.inrange{background:rgba(204,33,42,.35);border-radius:0}
 .cald.rstart{background:#CC212A;border-radius:9px 0 0 9px}
 .cald.rend{background:#CC212A;border-radius:0 9px 9px 0}
@@ -246,7 +246,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v19 (calendario fix)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v20 (calendario fix2)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -423,7 +423,7 @@ function calRender(){
   const days=new Date(Y,M,0).getDate();
   const d1=FILT.day1, d2=FILT.day2, pick=CAL_PICK;
   let cells='';
-  for(let i=0;i<first;i++) cells+='<div class="cald empty"></div>';
+  for(let i=0;i<first;i++) cells+='<div class="cald cald-empty"></div>';
   for(let d=1;d<=days;d++){
     const ymd=partsToYmd(Y,M,d);
     let cls='cald';
