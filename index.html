@@ -38,7 +38,25 @@ header{position:sticky;top:0;z-index:20;background:var(--ink);color:#fff;box-sha
 .fday{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.5);border-radius:20px;padding:3px 10px 3px 12px}
 .fday.active{border-color:#fff}
 .fday .dl{font-size:12.5px;color:#fff}
-#fdate1,#fdate2{background:none;border:none;color:#fff;font-family:'Inter';font-size:12.5px;color-scheme:dark;outline:none;cursor:pointer}
+.frangebtn{background:none;border:none;color:#fff;font-family:'Inter';font-size:12.5px;outline:none;cursor:pointer;padding:0}
+.calpop{position:absolute;z-index:50;background:#241A1A;border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,.45);width:300px;color:#fff}
+.calhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.calhd .cmn{font-family:'Space Grotesk';font-weight:700;font-size:14.5px;text-transform:capitalize}
+.calnav{background:rgba(255,255,255,.12);border:none;color:#fff;width:32px;height:32px;border-radius:9px;font-size:17px;cursor:pointer;line-height:1}
+.calnav:active{background:rgba(255,255,255,.25)}
+.caldow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
+.caldow span{text-align:center;font-size:10.5px;color:rgba(255,255,255,.5);padding:4px 0}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cald{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;border-radius:8px;cursor:pointer;font-family:'Inter';color:#fff;user-select:none}
+.cald.empty{cursor:default}
+.cald:not(.empty):active{background:rgba(255,255,255,.2)}
+.cald.inrange{background:rgba(204,33,42,.35);border-radius:0}
+.cald.rstart{background:#CC212A;border-radius:8px 0 0 8px}
+.cald.rend{background:#CC212A;border-radius:0 8px 8px 0}
+.cald.rstart.rend{border-radius:8px}
+.calft{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px}
+.calhint{font-size:11px;color:rgba(255,255,255,.6);flex:1}
+.calclr{background:rgba(255,255,255,.12);border:none;color:#fff;padding:6px 12px;border-radius:9px;font-size:12px;cursor:pointer}
 main{max-width:1040px;margin:0 auto;padding:24px 22px 60px}
 .empty{text-align:center;padding:64px 20px;color:var(--muted)}
 .empty .big{font-family:'Space Grotesk';font-size:26px;color:var(--ink2);margin-bottom:10px}
@@ -227,7 +245,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v17 (rango fechas)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v18 (calendario rango)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -235,7 +253,8 @@ footer b{color:var(--ink2)}
       <button class="fbtn" data-mode="6m">6 meses</button>
       <button class="fbtn" data-mode="3m">3 meses</button>
       <button class="fbtn" data-mode="1m">1 mes</button>
-      <span class="fday" id="fdaywrap"><span class="dl">Rango</span><input type="date" id="fdate1"><span class="dl" style="opacity:.6">→</span><input type="date" id="fdate2"></span>
+      <span class="fday" id="fdaywrap"><button type="button" id="frangebtn" class="frangebtn">Rango de fechas</button></span>
+      <div id="calpop" class="calpop" style="display:none"></div>
     </div>
     <div class="tabs">
       <button class="tab active" data-tab="consulta">Consulta</button>
@@ -376,21 +395,60 @@ function cuotasBlock(o){
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 // --- filtros ---
-const fbtns=[...document.querySelectorAll('.fbtn')], fdate1=document.getElementById('fdate1'), fdate2=document.getElementById('fdate2'), fdaywrap=document.getElementById('fdaywrap');
-function paintFilter(){ fbtns.forEach(b=>b.classList.toggle('active', FILT.mode===b.dataset.mode)); fdaywrap.classList.toggle('active', FILT.mode==='day'); if(FILT.mode!=='day'){ fdate1.value=''; fdate2.value=''; } }
+const fbtns=[...document.querySelectorAll('.fbtn')], fdaywrap=document.getElementById('fdaywrap'), frangebtn=document.getElementById('frangebtn'), calpop=document.getElementById('calpop');
+function paintFilter(){ fbtns.forEach(b=>b.classList.toggle('active', FILT.mode===b.dataset.mode)); fdaywrap.classList.toggle('active', FILT.mode==='day'); frangebtn.textContent = (FILT.mode==='day' && FILT.day1) ? (FILT.day1===FILT.day2 ? ymdFmt(FILT.day1) : ymdFmt(FILT.day1)+' → '+ymdFmt(FILT.day2)) : 'Rango de fechas'; }
 function setFilter(mode){ FILT.mode=mode; if(mode!=='day'){ FILT.day1=null; FILT.day2=null; } paintFilter(); }
 fbtns.forEach(b=>b.onclick=()=>{ setFilter(b.dataset.mode); refresh(); });
-function ymdOf(v){ if(!v) return null; const p=v.split('-'); return +(p[0]+p[1]+p[2]); }
-function applyRange(){
-  let a=ymdOf(fdate1.value), b=ymdOf(fdate2.value);
-  if(!a && !b){ setFilter('all'); refresh(); return; }
-  if(a && !b) b=a;
-  if(!a && b) a=b;
-  if(a>b){ const t=a; a=b; b=t; }
-  FILT.mode='day'; FILT.day1=a; FILT.day2=b; paintFilter(); refresh();
+
+/* ---- Calendario propio con rango sombreado ---- */
+const CAL_DOW=['D','L','M','M','J','V','S'], CAL_MON=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function ymdToParts(y){ const s=''+y; return {y:+s.slice(0,4), m:+s.slice(4,6), d:+s.slice(6,8)}; }
+function partsToYmd(Y,M,D){ return Y*10000 + M*100 + D; }
+let CAL_VIEW=null, CAL_PICK=null; /* CAL_VIEW={Y,M} ; CAL_PICK = primer dia elegido pendiente de fin */
+function calOpen(){
+  const base = FILT.day1 ? ymdToParts(FILT.day1) : ymdToParts(+(new Date().toISOString().slice(0,10).replace(/-/g,'')));
+  CAL_VIEW={Y:base.y, M:base.m}; CAL_PICK=null;
+  calRender();
+  const r=frangebtn.getBoundingClientRect();
+  calpop.style.display='block';
+  calpop.style.left=Math.max(8, Math.min(r.left+window.scrollX, window.scrollX+window.innerWidth-316))+'px';
+  calpop.style.top=(r.bottom+window.scrollY+6)+'px';
 }
-fdate1.addEventListener('change', applyRange);
-fdate2.addEventListener('change', applyRange);
+function calClose(){ calpop.style.display='none'; CAL_PICK=null; }
+function calRender(){
+  const {Y,M}=CAL_VIEW;
+  const first=new Date(Y,M-1,1).getDay();
+  const days=new Date(Y,M,0).getDate();
+  const d1=FILT.day1, d2=FILT.day2, pick=CAL_PICK;
+  let cells='';
+  for(let i=0;i<first;i++) cells+='<div class="cald empty"></div>';
+  for(let d=1;d<=days;d++){
+    const ymd=partsToYmd(Y,M,d);
+    let cls='cald';
+    if(pick!==null){ if(ymd===pick) cls+=' rstart rend'; }
+    else if(d1 && d2){ if(ymd===d1) cls+=' rstart'; if(ymd===d2) cls+=' rend'; if(ymd>d1 && ymd<d2) cls+=' inrange'; if(d1===d2 && ymd===d1) cls+=' rstart rend'; }
+    cells+=`<div class="${cls}" data-d="${ymd}">${d}</div>`;
+  }
+  const hint = pick!==null ? 'Ahora elige el fin' : (d1&&d2 ? (d1===d2?ymdFmt(d1):ymdFmt(d1)+' → '+ymdFmt(d2)) : 'Elige inicio y fin');
+  calpop.innerHTML=
+    `<div class="calhd"><button class="calnav" data-nav="-1">‹</button><span class="cmn">${CAL_MON[M-1]} ${Y}</span><button class="calnav" data-nav="1">›</button></div>`+
+    `<div class="caldow">${CAL_DOW.map(x=>`<span>${x}</span>`).join('')}</div>`+
+    `<div class="calgrid">${cells}</div>`+
+    `<div class="calft"><span class="calhint">${hint}</span><button class="calclr">Borrar</button></div>`;
+  calpop.querySelectorAll('.calnav').forEach(b=>b.onclick=()=>{ let m=CAL_VIEW.M+(+b.dataset.nav); let y=CAL_VIEW.Y; if(m<1){m=12;y--;} if(m>12){m=1;y++;} CAL_VIEW={Y:y,M:m}; calRender(); });
+  calpop.querySelectorAll('.cald[data-d]').forEach(c=>c.onclick=()=>{
+    const ymd=+c.dataset.d;
+    if(CAL_PICK===null){ CAL_PICK=ymd; FILT.day1=ymd; FILT.day2=ymd; calRender(); }
+    else {
+      let a=CAL_PICK, b=ymd; if(a>b){ const t=a; a=b; b=t; }
+      FILT.mode='day'; FILT.day1=a; FILT.day2=b; CAL_PICK=null;
+      paintFilter(); calClose(); refresh();
+    }
+  });
+  calpop.querySelector('.calclr').onclick=()=>{ CAL_PICK=null; setFilter('all'); calClose(); refresh(); };
+}
+frangebtn.onclick=(e)=>{ e.stopPropagation(); if(calpop.style.display==='none') calOpen(); else calClose(); };
+document.addEventListener('click',(e)=>{ if(calpop.style.display!=='none' && !calpop.contains(e.target) && e.target!==frangebtn) calClose(); });
 
 function piAll(cl){ let vt=0,pc=0; for(const o of (cl.orders||[])){ vt+=(typeof o.vt==='number'?o.vt:0); pc+=(typeof o.pc==='number'?o.pc:0);} return vt?pc/vt:null; }
 function hideAC(){ ac.style.display='none'; ACSEL=-1; }
