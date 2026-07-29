@@ -39,24 +39,25 @@ header{position:sticky;top:0;z-index:20;background:var(--ink);color:#fff;box-sha
 .fday.active{border-color:#fff}
 .fday .dl{font-size:12.5px;color:#fff}
 .frangebtn{background:none;border:none;color:#fff;font-family:'Inter';font-size:12.5px;outline:none;cursor:pointer;padding:0}
-.calpop{position:absolute;z-index:50;background:#241A1A;border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,.45);width:300px;color:#fff}
-.calhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-.calhd .cmn{font-family:'Space Grotesk';font-weight:700;font-size:14.5px;text-transform:capitalize}
-.calnav{background:rgba(255,255,255,.12);border:none;color:#fff;width:32px;height:32px;border-radius:9px;font-size:17px;cursor:pointer;line-height:1}
-.calnav:active{background:rgba(255,255,255,.25)}
-.caldow{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
-.caldow span{text-align:center;font-size:10.5px;color:rgba(255,255,255,.5);padding:4px 0}
-.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.cald{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;border-radius:8px;cursor:pointer;font-family:'Inter';color:#fff;user-select:none}
+.calpop{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9999;background:#241A1A;border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:16px;box-shadow:0 16px 50px rgba(0,0,0,.6);width:min(340px,calc(100vw - 32px));box-sizing:border-box;color:#fff}
+.calbackdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998}
+.calhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.calhd .cmn{font-family:'Space Grotesk';font-weight:700;font-size:15px;text-transform:capitalize;flex:1;text-align:center}
+.calnav{background:rgba(255,255,255,.14);border:none;color:#fff;width:38px;height:38px;min-width:38px;border-radius:10px;font-size:20px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center}
+.calnav:active{background:rgba(255,255,255,.3)}
+.caldow{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:5px}
+.caldow span{text-align:center;font-size:11px;color:rgba(255,255,255,.5);padding:3px 0}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cald{height:38px;display:flex;align-items:center;justify-content:center;font-size:14px;border-radius:9px;cursor:pointer;font-family:'Inter';color:#fff;user-select:none}
 .cald.empty{cursor:default}
 .cald:not(.empty):active{background:rgba(255,255,255,.2)}
 .cald.inrange{background:rgba(204,33,42,.35);border-radius:0}
-.cald.rstart{background:#CC212A;border-radius:8px 0 0 8px}
-.cald.rend{background:#CC212A;border-radius:0 8px 8px 0}
-.cald.rstart.rend{border-radius:8px}
-.calft{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px}
-.calhint{font-size:11px;color:rgba(255,255,255,.6);flex:1}
-.calclr{background:rgba(255,255,255,.12);border:none;color:#fff;padding:6px 12px;border-radius:9px;font-size:12px;cursor:pointer}
+.cald.rstart{background:#CC212A;border-radius:9px 0 0 9px}
+.cald.rend{background:#CC212A;border-radius:0 9px 9px 0}
+.cald.rstart.rend{border-radius:9px}
+.calft{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px}
+.calhint{font-size:12px;color:rgba(255,255,255,.6);flex:1}
+.calclr{background:rgba(255,255,255,.14);border:none;color:#fff;padding:8px 14px;border-radius:10px;font-size:13px;cursor:pointer}
 main{max-width:1040px;margin:0 auto;padding:24px 22px 60px}
 .empty{text-align:center;padding:64px 20px;color:var(--muted)}
 .empty .big{font-family:'Space Grotesk';font-size:26px;color:var(--ink2);margin-bottom:10px}
@@ -245,7 +246,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v18 (calendario rango)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v19 (calendario fix)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -405,16 +406,17 @@ const CAL_DOW=['D','L','M','M','J','V','S'], CAL_MON=['enero','febrero','marzo',
 function ymdToParts(y){ const s=''+y; return {y:+s.slice(0,4), m:+s.slice(4,6), d:+s.slice(6,8)}; }
 function partsToYmd(Y,M,D){ return Y*10000 + M*100 + D; }
 let CAL_VIEW=null, CAL_PICK=null; /* CAL_VIEW={Y,M} ; CAL_PICK = primer dia elegido pendiente de fin */
+let CAL_BACKDROP=null;
 function calOpen(){
   const base = FILT.day1 ? ymdToParts(FILT.day1) : ymdToParts(+(new Date().toISOString().slice(0,10).replace(/-/g,'')));
   CAL_VIEW={Y:base.y, M:base.m}; CAL_PICK=null;
-  calRender();
-  const r=frangebtn.getBoundingClientRect();
+  if(!CAL_BACKDROP){ CAL_BACKDROP=document.createElement('div'); CAL_BACKDROP.className='calbackdrop'; CAL_BACKDROP.onclick=calClose; document.body.appendChild(CAL_BACKDROP); }
+  if(calpop.parentNode!==document.body) document.body.appendChild(calpop);
+  CAL_BACKDROP.style.display='block';
   calpop.style.display='block';
-  calpop.style.left=Math.max(8, Math.min(r.left+window.scrollX, window.scrollX+window.innerWidth-316))+'px';
-  calpop.style.top=(r.bottom+window.scrollY+6)+'px';
+  calRender();
 }
-function calClose(){ calpop.style.display='none'; CAL_PICK=null; }
+function calClose(){ calpop.style.display='none'; if(CAL_BACKDROP) CAL_BACKDROP.style.display='none'; CAL_PICK=null; }
 function calRender(){
   const {Y,M}=CAL_VIEW;
   const first=new Date(Y,M-1,1).getDay();
@@ -447,8 +449,7 @@ function calRender(){
   });
   calpop.querySelector('.calclr').onclick=()=>{ CAL_PICK=null; setFilter('all'); calClose(); refresh(); };
 }
-frangebtn.onclick=(e)=>{ e.stopPropagation(); if(calpop.style.display==='none') calOpen(); else calClose(); };
-document.addEventListener('click',(e)=>{ if(calpop.style.display!=='none' && !calpop.contains(e.target) && e.target!==frangebtn) calClose(); });
+frangebtn.onclick=(e)=>{ e.stopPropagation(); if(calpop.style.display==='none'||!calpop.style.display) calOpen(); else calClose(); };
 
 function piAll(cl){ let vt=0,pc=0; for(const o of (cl.orders||[])){ vt+=(typeof o.vt==='number'?o.vt:0); pc+=(typeof o.pc==='number'?o.pc:0);} return vt?pc/vt:null; }
 function hideAC(){ ac.style.display='none'; ACSEL=-1; }
