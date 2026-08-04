@@ -246,7 +246,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v20 (calendario fix2)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v21 (cache fix)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -503,8 +503,8 @@ clr.onclick=()=>{ q.value=''; CURR=null; HILITE=null; hideAC(); q.focus(); empty
 const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function fetchEnc(){
   if(ENC) return ENC;
-  const url='https://www.googleapis.com/drive/v3/files/'+DRIVE_FILE_ID+'?alt=media&key='+DRIVE_API_KEY;
-  const r=await fetch(url);
+  const url='https://www.googleapis.com/drive/v3/files/'+DRIVE_FILE_ID+'?alt=media&key='+DRIVE_API_KEY+'&_cb='+Date.now();
+  const r=await fetch(url,{cache:'no-store'});
   if(!r.ok) throw new Error('http '+r.status);
   ENC=await r.json();
   return ENC;
