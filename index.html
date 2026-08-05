@@ -246,7 +246,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v22 (fecha auto)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v23 (fecha cashea)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -542,13 +542,13 @@ async function doLogin(){
   catch(e){ msg.style.color='var(--fin)'; msg.textContent=(e&&e.message==='user')?'Usuario no encontrado.':'Usuario o contraseña incorrectos.'; }
 }
 function updateHint(){
-  let maxYmd=0, nCli=0;
-  for(const k in CLIENTES){ nCli++; const inv=CLIENTES[k].inv; for(let i=0;i<inv.length;i++){ const y=inv[i][1]; if(y>maxYmd) maxYmd=y; } }
-  const s=''+maxYmd;
+  let maxCashea=0, nCli=0;
+  for(const k in CLIENTES){ nCli++; const ords=CLIENTES[k].orders||[]; for(let i=0;i<ords.length;i++){ const y=dmyToYmd(ords[i].fc); if(y>maxCashea) maxCashea=y; } }
+  const s=''+maxCashea;
   const fecha = s.length===8 ? (s.slice(6,8)+'/'+s.slice(4,6)+'/'+s.slice(0,4)) : '—';
   const nfmt = nCli.toLocaleString('es');
   const el=document.querySelector('.hint');
-  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · datos hasta '+fecha+' · v22';
+  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v23';
 }
 document.getElementById('lbtn').onclick=doLogin;
 document.getElementById('lpass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
