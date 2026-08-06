@@ -17,6 +17,8 @@ h1,h2,h3,.disp{font-family:'Space Grotesk',sans-serif}
 header{position:sticky;top:0;z-index:20;background:var(--ink);color:#fff;box-shadow:0 1px 0 rgba(0,0,0,.15)}
 .hwrap{max-width:1040px;margin:0 auto;padding:14px 22px}
 .brand{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logout{margin-left:auto;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:#fff;font-family:'Inter';font-size:13px;font-weight:600;padding:8px 16px;border-radius:10px;cursor:pointer}
+.logout:active{background:rgba(255,255,255,.3)}
 .brand .logo{width:46px;height:46px;border-radius:10px;background:#fff;padding:3px;box-shadow:0 2px 8px rgba(0,0,0,.18);flex:none}
 .brand .btext{display:flex;flex-direction:column;gap:1px}
 .brand .mk{font-family:'Space Grotesk';font-weight:700;font-size:18px;letter-spacing:.2px;color:#fff;line-height:1.2}
@@ -91,12 +93,14 @@ main{max-width:1040px;margin:0 auto;padding:24px 22px 60px}
 .split .seg{height:100%}
 .split .seg.co{background:var(--contado)}
 .split .seg.ca{background:var(--credito)}
+.split .seg.cs{background:#F39C12}
 .legend{display:flex;gap:26px;flex-wrap:wrap;margin-top:16px}
 .leg{display:flex;flex-direction:column;gap:2px}
 .leg .row{display:flex;align-items:center;gap:8px}
 .leg .sw{width:10px;height:10px;border-radius:3px}
 .leg .sw.co{background:var(--contado)}
 .leg .sw.ca{background:var(--credito)}
+.leg .sw.cs{background:#F39C12}
 .leg .k{font-size:12px;color:rgba(255,255,255,.85);font-weight:500}
 .leg .v{font-family:'Space Grotesk';font-size:20px;font-weight:600;color:#fff;margin-left:18px}
 .leg .n{font-size:11.5px;color:rgba(255,255,255,.7);margin-left:18px}
@@ -232,6 +236,7 @@ footer b{color:var(--ink2)}
         <span class="mk">Compras por cliente</span>
         <span class="sub">Krash Depot Punto Fijo · contado y Cashea</span>
       </div>
+      <button id="logout" class="logout" title="Cerrar sesión">Cerrar sesión</button>
     </div>
     <div class="searchrow">
       <div class="acwrap">
@@ -248,7 +253,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v26 (hoy y semana)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v27 (crediscore ficha + logout)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -333,7 +338,7 @@ function list(matches){
 }
 function dossier(){
   const cl=CLIENTES[CURR]; if(!cl){ empty(); return; }
-  const t=totals(cl); const coPct=t.tot>0?(t.co/t.tot*100):0, caPct=t.tot>0?(t.ca/t.tot*100):0;
+  const t=totals(cl); const coPct=t.tot>0?(t.co/t.tot*100):0, caPct=t.tot>0?(t.ca/t.tot*100):0, csPct=t.tot>0?(t.cs/t.tot*100):0;
   const O=(cl.orders||[]).filter(o=>predicate()(dmyToYmd(o.fc)));
   const _vt=O.reduce((a,o)=>a+(typeof o.vt==='number'?o.vt:0),0), _pc=O.reduce((a,o)=>a+(typeof o.pc==='number'?o.pc:0),0); const cliPi=_vt?_pc/_vt:null;
   el.innerHTML=`
@@ -347,12 +352,14 @@ function dossier(){
       <div class="totlab">Total comprado en tienda <span class="per">· ${filterLabel()}</span></div>
       <div class="totval num">${money(t.tot)}</div>
       <div class="totn num">${t.nf} factura${t.nf===1?'':'s'}${t.an?` · ${t.an} anulada${t.an===1?'':'s'} excluida${t.an===1?'':'s'}`:''}</div>${t.nd?`<div class="totdev num">Neto de ${t.nd} devolución${t.nd===1?'':'es'} · ${money(Math.abs(t.dev))} restado${t.nd===1?'':'s'}</div>`:''}
-      <div class="split"><div class="seg co" style="width:${coPct}%"></div><div class="seg ca" style="width:${caPct}%"></div></div>
+      <div class="split"><div class="seg co" style="width:${coPct}%"></div><div class="seg ca" style="width:${caPct}%"></div><div class="seg cs" style="width:${csPct}%"></div></div>
       <div class="legend">
-        <div class="leg"><div class="row"><span class="sw co"></span><span class="k">Contado (sin Cashea)</span></div>
+        <div class="leg"><div class="row"><span class="sw co"></span><span class="k">Contado</span></div>
           <div class="v num">${money(t.co)}</div><div class="n num">${t.con} factura${t.con===1?'':'s'} · ${pct(t.tot>0?t.co/t.tot:null)}</div></div>
-        <div class="leg"><div class="row"><span class="sw ca"></span><span class="k">Cashea (crédito)</span></div>
+        <div class="leg"><div class="row"><span class="sw ca"></span><span class="k">Cashea</span></div>
           <div class="v num">${money(t.ca)}</div><div class="n num">${t.can} factura${t.can===1?'':'s'} · ${pct(t.tot>0?t.ca/t.tot:null)}</div></div>
+        ${t.cs>0?`<div class="leg"><div class="row"><span class="sw cs"></span><span class="k">CrediScore</span></div>
+          <div class="v num">${money(t.cs)}</div><div class="n num">${t.csn} factura${t.csn===1?'':'s'} · ${pct(t.tot>0?t.cs/t.tot:null)}</div></div>`:''}
       </div>
     </div>
     ${cashea(O)}`;
@@ -557,6 +564,7 @@ function updateHint(){
   if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v23';
 }
 document.getElementById('lbtn').onclick=doLogin;
+document.getElementById('logout').onclick=()=>{ CLIENTES=null; CURR=null; HILITE=null; document.getElementById('lpass').value=''; document.getElementById('lock').style.display='flex'; };
 document.getElementById('lpass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 document.getElementById('luser').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('lpass').focus(); });
 // ===== Reportes =====
