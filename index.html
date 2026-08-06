@@ -248,7 +248,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v25 (credito en contado)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v26 (hoy y semana)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -256,6 +256,8 @@ footer b{color:var(--ink2)}
       <button class="fbtn" data-mode="6m">6 meses</button>
       <button class="fbtn" data-mode="3m">3 meses</button>
       <button class="fbtn" data-mode="1m">1 mes</button>
+      <button class="fbtn" data-mode="1w">1 semana</button>
+      <button class="fbtn" data-mode="today">Hoy</button>
       <span class="fday" id="fdaywrap"><button type="button" id="frangebtn" class="frangebtn">Rango de fechas</button></span>
       <div id="calpop" class="calpop" style="display:none"></div>
     </div>
@@ -293,12 +295,14 @@ function facIndex(){ if(FACIDX) return FACIDX; FACIDX={}; for(const k in CLIENTE
 function predicate(){
   if(FILT.mode==='all') return ()=>true;
   if(FILT.mode==='day'){ const d1=FILT.day1, d2=FILT.day2; return y=>y>=d1 && y<=d2; }
+  if(FILT.mode==='today'){ const th=jsYmd(new Date()); return y=>y===th; }
+  if(FILT.mode==='1w'){ const d=new Date(); d.setDate(d.getDate()-7); const th=jsYmd(d); return y=>y>=th; }
   const map={'1m':1,'3m':3,'6m':6,'1y':12}; const d=new Date(); d.setMonth(d.getMonth()-map[FILT.mode]); const th=jsYmd(d);
   return y=>y>=th;
 }
 function filterLabel(){
   if(FILT.mode==='day') return (FILT.day1&&FILT.day2)?(FILT.day1===FILT.day2?('el '+ymdFmt(FILT.day1)):('del '+ymdFmt(FILT.day1)+' al '+ymdFmt(FILT.day2))):'un rango';
-  return {all:'histórico completo','1y':'último año','6m':'últimos 6 meses','3m':'últimos 3 meses','1m':'último mes'}[FILT.mode];
+  return {all:'histórico completo','1y':'último año','6m':'últimos 6 meses','3m':'últimos 3 meses','1m':'último mes','1w':'última semana','today':'hoy'}[FILT.mode];
 }
 function totals(cl){
   const p=predicate(); let tot=0,nf=0,ca=0,can=0,cs=0,csn=0,cr=0,crn=0,an=0,dev=0,nd=0; const inv=cl.inv;
