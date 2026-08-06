@@ -248,7 +248,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v24 (4 categorias)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v25 (credito en contado)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -303,7 +303,7 @@ function filterLabel(){
 function totals(cl){
   const p=predicate(); let tot=0,nf=0,ca=0,can=0,cs=0,csn=0,cr=0,crn=0,an=0,dev=0,nd=0; const inv=cl.inv;
   for(let i=0;i<inv.length;i++){ const r=inv[i]; if(!p(r[1])) continue; if(r[4]){an++;continue;} if(r[2]<0){ dev+=r[2]; nd++; tot+=r[2]; continue; } tot+=r[2];nf++; if(r[3]===1){ca+=r[2];can++;} else if(r[3]===2){cs+=r[2];csn++;} else if(r[3]===3){cr+=r[2];crn++;} }
-  return {tot:r2(tot),nf,ca:r2(ca),can,cs:r2(cs),csn,cr:r2(cr),crn,co:r2(tot-ca-cs-cr),con:nf-can-csn-crn,an,dev:r2(dev),nd};
+  return {tot:r2(tot),nf,ca:r2(ca),can,cs:r2(cs),csn,cr:r2(cr),crn,co:r2(tot-ca-cs),con:nf-can-csn,an,dev:r2(dev),nd};
 }
 
 const el=document.getElementById('main'), q=document.getElementById('q'), clr=document.getElementById('clr'), qf=document.getElementById('qf'), clrf=document.getElementById('clrf'), ac=document.getElementById('ac');
@@ -601,14 +601,14 @@ function enterReportes(){
   renderRepTable();
 }
 function renderRepTable(){
-  const filterPi=(RPIMIN!==null||RPIMAX!==null); const rows=[]; let sumV=0, sumN=0, sumD=0, sumCa=0, sumCs=0, sumCr=0;
+  const filterPi=(RPIMIN!==null||RPIMAX!==null); const rows=[]; let sumV=0, sumN=0, sumD=0, sumCa=0, sumCs=0;
   for(const k in CLIENTES){
     const cl=CLIENTES[k];
     if(RTYPE!=='all' && clientType(cl.r)!==RTYPE) continue;
     const m=metrics(cl);
     if(RNIVEL!=='all'){ if(m.pi===null || !RNIVEL.split(',').includes(String(nivelInicial(m.pi)))) continue; }
     if(filterPi){ if(m.pi===null) continue; const p=m.pi*100; if(RPIMIN!==null&&p<RPIMIN) continue; if(RPIMAX!==null&&p>RPIMAX) continue; }
-    sumV+=m.tot; sumN+=m.nf; sumD+=m.dev; sumCa+=m.ca; sumCs+=m.cs; sumCr+=m.cr;
+    sumV+=m.tot; sumN+=m.nf; sumD+=m.dev; sumCa+=m.ca; sumCs+=m.cs;
     if(RSORT==='pi'){ if(m.pi===null) continue; }
     else if(RSORT==='ord'){ if(m.ord===0) continue; }
     else if(RSORT==='ca'){ if(m.ca<=0) continue; }
@@ -619,7 +619,7 @@ function renderRepTable(){
   rows.sort((a,b)=>{ const va=a[2][key]??0, vb=b[2][key]??0; return va===vb?0:(va<vb?-1:1)*dir; });
   const top=rows.slice(0,200);
   const prom = sumN>0 ? sumV/sumN : 0;
-  document.getElementById('repsum').innerHTML=`<div class="rs"><div class="rsl">Ventas netas (menos devol.)</div><div class="rsv">${money(sumV)}</div></div><div class="rs"><div class="rsl">Contado</div><div class="rsv rsco">${money(sumV-sumCa-sumCs-sumCr)}</div></div><div class="rs"><div class="rsl">Cashea</div><div class="rsv rsca">${money(sumCa)}</div></div><div class="rs"><div class="rsl">CrediScore</div><div class="rsv rscs">${money(sumCs)}</div></div><div class="rs"><div class="rsl">Crédito</div><div class="rsv rscr">${money(sumCr)}</div></div><div class="rs"><div class="rsl">Devoluciones</div><div class="rsv rsd">${money(Math.abs(sumD))}</div></div><div class="rs"><div class="rsl">Nº de facturas</div><div class="rsv">${sumN.toLocaleString('es')}</div></div><div class="rs"><div class="rsl">Promedio por factura</div><div class="rsv">${money(prom)}</div></div>`;
+  document.getElementById('repsum').innerHTML=`<div class="rs"><div class="rsl">Ventas netas (menos devol.)</div><div class="rsv">${money(sumV)}</div></div><div class="rs"><div class="rsl">Contado</div><div class="rsv rsco">${money(sumV-sumCa-sumCs)}</div></div><div class="rs"><div class="rsl">Cashea</div><div class="rsv rsca">${money(sumCa)}</div></div><div class="rs"><div class="rsl">CrediScore</div><div class="rsv rscs">${money(sumCs)}</div></div><div class="rs"><div class="rsl">Devoluciones</div><div class="rsv rsd">${money(Math.abs(sumD))}</div></div><div class="rs"><div class="rsl">Nº de facturas</div><div class="rsv">${sumN.toLocaleString('es')}</div></div><div class="rs"><div class="rsl">Promedio por factura</div><div class="rsv">${money(prom)}</div></div>`;
   document.getElementById('reptitle').textContent=`${rows.length.toLocaleString('es')} clientes · mostrando ${top.length} · ${filterLabel()}`;
   const fmt=m=>{
     if(RSORT==='ord') return `<div class="big num">${m.ord}</div><div class="sub num">${money(m.ca)} Cashea</div>`;
