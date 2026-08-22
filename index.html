@@ -253,7 +253,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v35 (condicion pago)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v36 (nfacturas por cat)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -563,7 +563,7 @@ function updateHint(){
   const fecha = s.length===8 ? (s.slice(6,8)+'/'+s.slice(4,6)+'/'+s.slice(0,4)) : '—';
   const nfmt = nCli.toLocaleString('es');
   const el=document.querySelector('.hint');
-  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v35';
+  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v36';
 }
 document.getElementById('lbtn').onclick=doLogin;
 document.getElementById('logout').onclick=()=>{ CLIENTES=null; CURR=null; HILITE=null; document.getElementById('lpass').value=''; document.getElementById('lock').style.display='flex'; };
@@ -611,11 +611,11 @@ function nivelBadges(cl){
   return out;
 }
 function metrics(cl){
-  const p=predicate(); let tot=0,ca=0,can=0,cs=0,cr=0,vt=0,pc=0,ord=0,piMin=null,nf=0,dev=0,nd=0;
+  const p=predicate(); let tot=0,ca=0,can=0,cs=0,csn=0,cr=0,vt=0,pc=0,ord=0,piMin=null,nf=0,dev=0,nd=0;
   const hist={}; for(const o of (cl.orders||[])){ if(o.f && typeof o.pi==='number') hist[String(o.f).trim()]=o.pi; }
-  for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; if(r[2]<0){ dev+=r[2]; nd++; tot+=r[2]; continue; } tot+=r[2]; nf++; if(r[3]===1){ca+=r[2];can++; const fac=String(r[0]).trim(); let pini=null; if(fac in hist){pini=hist[fac];} else if(typeof r[5]==='number'&&r[5]>=0){pini=r[5];} if(pini!==null&&(piMin===null||pini<piMin)) piMin=pini;} else if(r[3]===2){cs+=r[2];} else if(r[3]===3){cr+=r[2];} }
+  for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; if(r[2]<0){ dev+=r[2]; nd++; tot+=r[2]; continue; } tot+=r[2]; nf++; if(r[3]===1){ca+=r[2];can++; const fac=String(r[0]).trim(); let pini=null; if(fac in hist){pini=hist[fac];} else if(typeof r[5]==='number'&&r[5]>=0){pini=r[5];} if(pini!==null&&(piMin===null||pini<piMin)) piMin=pini;} else if(r[3]===2){cs+=r[2];csn++;} else if(r[3]===3){cr+=r[2];} }
   for(const o of cl.orders){ if(!p(dmyToYmd(o.fc))) continue; ord++; vt+=(o.vt||0); pc+=(o.pc||0); }
-  return {tot:r2(tot),ca:r2(ca),can,cs:r2(cs),cr:r2(cr),ord,pi:piMin,nf,dev:r2(dev),nd};
+  return {tot:r2(tot),ca:r2(ca),can,cs:r2(cs),csn,cr:r2(cr),con:nf-can-csn,ord,pi:piMin,nf,dev:r2(dev),nd};
 }
 function markConsulta(){ MODE='consulta'; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='consulta')); }
 function refresh(){ if(MODE==='reportes'){ renderRepTable(); return; } if(CURR && CLIENTES[CURR]){ dossier(); return; } const rawq=q.value.trim(); if(rawq){ renderBody(rawq); } else { empty(); } }
@@ -668,8 +668,8 @@ function renderRepTable(){
     if(filterPi){ if(m.pi===null) continue; const p=m.pi*100; if(RPIMIN!==null&&p<RPIMIN) continue; if(RPIMAX!==null&&p>RPIMAX) continue; }
     const mCo=m.tot-m.ca-m.cs;
     if(RPAY==='cashea'){ sumV+=m.ca; sumCa+=m.ca; sumN+=m.can; }
-    else if(RPAY==='crediscore'){ sumV+=m.cs; sumCs+=m.cs; }
-    else if(RPAY==='contado'){ sumV+=mCo; }
+    else if(RPAY==='crediscore'){ sumV+=m.cs; sumCs+=m.cs; sumN+=m.csn; }
+    else if(RPAY==='contado'){ sumV+=mCo; sumN+=m.con; }
     else { sumV+=m.tot; sumN+=m.nf; sumD+=m.dev; sumCa+=m.ca; sumCs+=m.cs; }
     if(RSORT==='pi'){ if(m.pi===null) continue; }
     else if(RSORT==='ord'){ if(m.ord===0) continue; }
