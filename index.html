@@ -253,7 +253,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v31 (crediscore etiquetas)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v32 (filtro forma pago)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -561,14 +561,14 @@ function updateHint(){
   const fecha = s.length===8 ? (s.slice(6,8)+'/'+s.slice(4,6)+'/'+s.slice(0,4)) : '—';
   const nfmt = nCli.toLocaleString('es');
   const el=document.querySelector('.hint');
-  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v31';
+  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v32';
 }
 document.getElementById('lbtn').onclick=doLogin;
 document.getElementById('logout').onclick=()=>{ CLIENTES=null; CURR=null; HILITE=null; document.getElementById('lpass').value=''; document.getElementById('lock').style.display='flex'; };
 document.getElementById('lpass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 document.getElementById('luser').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('lpass').focus(); });
 // ===== Reportes =====
-let MODE='consulta', RSORT='tot', RPIMIN=null, RPIMAX=null, RTYPE='all', RNIVEL='all';
+let MODE='consulta', RSORT='tot', RPIMIN=null, RPIMAX=null, RTYPE='all', RNIVEL='all', RPAY='all';
 function clientType(r){ const c=(r||'').trim().charAt(0).toUpperCase(); if(c==='V'||c==='E'||c==='I'||c==='P'||c==='W'||c===''||(c>='0'&&c<='9')) return 'natural'; return 'juridico'; }
 function nivelInicial(pi){ if(pi===null||pi===undefined) return null; const p=pi*100; if(p>=45)return 1; if(p>=35)return 2; if(p>=25)return 3; if(p>=15)return 4; if(p>=5)return 5; return 6; }
 const NIVEL_PCT={1:50,2:40,3:30,4:20,5:10,6:0};
@@ -621,6 +621,11 @@ function setTab(m){ if(m==='reportes' && ROLE!=='reportes') return; MODE=m; docu
 function applyRole(){ const rt=document.querySelector('.tab[data-tab="reportes"]'); if(rt) rt.style.display=(ROLE==='reportes')?'':'none'; if(ROLE!=='reportes' && MODE==='reportes'){ markConsulta(); render(); } }
 function enterReportes(){
   el.innerHTML=`<div class="repctrl">
+    <div class="repgrp"><span class="rlab">Forma de pago</span>
+      <button class="pbtn active" data-pay="all">Todas</button>
+      <button class="pbtn" data-pay="contado">Contado</button>
+      <button class="pbtn" data-pay="cashea">Cashea</button>
+      <button class="pbtn" data-pay="crediscore">CrediScore</button></div>
     <div class="repgrp"><span class="rlab">Tipo cliente</span>
       <button class="tbtn active" data-type="all">Todos</button>
       <button class="tbtn" data-type="juridico">Jurídico</button>
@@ -634,6 +639,7 @@ function enterReportes(){
       <button class="nbtn lvl5" data-niv="5">N5</button>
       <button class="nbtn lvl6" data-niv="6">N6</button></div>
   </div><div class="repsum" id="repsum"></div><div class="reptitle" id="reptitle"></div><div id="reptable"></div>`;
+  el.querySelectorAll('.pbtn').forEach(b=>b.onclick=()=>{ RPAY=b.dataset.pay; el.querySelectorAll('.pbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.tbtn').forEach(b=>b.onclick=()=>{ RTYPE=b.dataset.type; el.querySelectorAll('.tbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.nbtn').forEach(b=>b.onclick=()=>{
     const v=b.dataset.niv;
@@ -651,6 +657,11 @@ function renderRepTable(){
     const cl=CLIENTES[k];
     if(RTYPE!=='all' && clientType(cl.r)!==RTYPE) continue;
     const m=metrics(cl);
+    if(RPAY!=='all'){
+      if(RPAY==='cashea' && m.ca<=0) continue;
+      if(RPAY==='crediscore' && m.cs<=0) continue;
+      if(RPAY==='contado' && (m.tot-m.ca-m.cs)<=0) continue;
+    }
     if(RNIVEL!=='all'){ if(m.pi===null || !RNIVEL.split(',').includes(String(nivelInicial(m.pi)))) continue; }
     if(filterPi){ if(m.pi===null) continue; const p=m.pi*100; if(RPIMIN!==null&&p<RPIMIN) continue; if(RPIMAX!==null&&p>RPIMAX) continue; }
     sumV+=m.tot; sumN+=m.nf; sumD+=m.dev; sumCa+=m.ca; sumCs+=m.cs;
