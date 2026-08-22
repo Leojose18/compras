@@ -253,7 +253,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v29 (nivel desde profit)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v30 (nivel combinado)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -574,12 +574,26 @@ function nivelInicial(pi){ if(pi===null||pi===undefined) return null; const p=pi
 const NIVEL_PCT={1:50,2:40,3:30,4:20,5:10,6:0};
 function nivelBadge(n,pi){ if(n===null) return '<span class="nivbadge nsc">Sin Cashea</span>'; return `<span class="nivbadge lvl${n}" title="Nivel segun inicial pagada en Cashea">Nivel ${n} · ${NIVEL_PCT[n]}% inicial</span>`; }
 function nivelTag(pi){ const n=nivelInicial(pi); if(n===null) return ''; return `<span class="nivtag lvl${n}">N${n}</span>`; }
-function nivelesDe(cl){ const s=new Set(); const inv=(cl&&cl.inv)||[]; for(const r of inv){ if(r[4]) continue; if(r[3]!==1) continue; const pini=r[5]; if(typeof pini==='number' && pini>=0){ const n=nivelInicial(pini); if(n!==null) s.add(n); } } return [...s].sort((a,b)=>a-b); }
+function nivelesDe(cl){
+  const s=new Set(); const inv=(cl&&cl.inv)||[];
+  // mapa de % inicial del historico por numero de factura
+  const hist={}; for(const o of ((cl&&cl.orders)||[])){ if(o.f && typeof o.pi==='number') hist[String(o.f).trim()]=o.pi; }
+  for(const r of inv){
+    if(r[4]) continue; if(r[3]!==1) continue;
+    const fac=String(r[0]).trim();
+    let pini=null;
+    if(fac in hist){ pini=hist[fac]; }                          // 1) historico
+    else if(typeof r[5]==='number' && r[5]>=0){ pini=r[5]; }    // 2) profit (fallback)
+    if(pini!==null){ const n=nivelInicial(pini); if(n!==null) s.add(n); }
+  }
+  return [...s].sort((a,b)=>a-b);
+}
 function nivelTags(cl){ return nivelesDe(cl).map(n=>`<span class="nivtag lvl${n}">N${n}</span>`).join(''); }
 function nivelBadges(cl){ const ns=nivelesDe(cl); if(!ns.length) return '<span class="nivbadge nsc">Sin Cashea</span>'; return ns.map(n=>`<span class="nivbadge lvl${n}" title="Nivel ${n}: ${NIVEL_PCT[n]}% de inicial">Nivel ${n} · ${NIVEL_PCT[n]}% inicial</span>`).join(''); }
 function metrics(cl){
   const p=predicate(); let tot=0,ca=0,can=0,cs=0,cr=0,vt=0,pc=0,ord=0,piMin=null,nf=0,dev=0,nd=0;
-  for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; if(r[2]<0){ dev+=r[2]; nd++; tot+=r[2]; continue; } tot+=r[2]; nf++; if(r[3]===1){ca+=r[2];can++; const pini=r[5]; if(typeof pini==='number'&&pini>=0&&(piMin===null||pini<piMin)) piMin=pini;} else if(r[3]===2){cs+=r[2];} else if(r[3]===3){cr+=r[2];} }
+  const hist={}; for(const o of (cl.orders||[])){ if(o.f && typeof o.pi==='number') hist[String(o.f).trim()]=o.pi; }
+  for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; if(r[2]<0){ dev+=r[2]; nd++; tot+=r[2]; continue; } tot+=r[2]; nf++; if(r[3]===1){ca+=r[2];can++; const fac=String(r[0]).trim(); let pini=null; if(fac in hist){pini=hist[fac];} else if(typeof r[5]==='number'&&r[5]>=0){pini=r[5];} if(pini!==null&&(piMin===null||pini<piMin)) piMin=pini;} else if(r[3]===2){cs+=r[2];} else if(r[3]===3){cr+=r[2];} }
   for(const o of cl.orders){ if(!p(dmyToYmd(o.fc))) continue; ord++; vt+=(o.vt||0); pc+=(o.pc||0); }
   return {tot:r2(tot),ca:r2(ca),can,cs:r2(cs),cr:r2(cr),ord,pi:piMin,nf,dev:r2(dev),nd};
 }
