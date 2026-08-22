@@ -253,7 +253,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v32 (filtro forma pago)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v33 (ayer y totales)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -263,6 +263,7 @@ footer b{color:var(--ink2)}
       <button class="fbtn" data-mode="1m">1 mes</button>
       <button class="fbtn" data-mode="1w">1 semana</button>
       <button class="fbtn" data-mode="today">Hoy</button>
+      <button class="fbtn" data-mode="ayer">Ayer</button>
       <span class="fday" id="fdaywrap"><button type="button" id="frangebtn" class="frangebtn">Rango de fechas</button></span>
       <div id="calpop" class="calpop" style="display:none"></div>
     </div>
@@ -301,13 +302,14 @@ function predicate(){
   if(FILT.mode==='all') return ()=>true;
   if(FILT.mode==='day'){ const d1=FILT.day1, d2=FILT.day2; return y=>y>=d1 && y<=d2; }
   if(FILT.mode==='today'){ const th=jsYmd(new Date()); return y=>y===th; }
+  if(FILT.mode==='ayer'){ const d=new Date(); d.setDate(d.getDate()-1); const th=jsYmd(d); return y=>y===th; }
   if(FILT.mode==='1w'){ const d=new Date(); d.setDate(d.getDate()-7); const th=jsYmd(d); return y=>y>=th; }
   const map={'1m':1,'3m':3,'6m':6,'1y':12}; const d=new Date(); d.setMonth(d.getMonth()-map[FILT.mode]); const th=jsYmd(d);
   return y=>y>=th;
 }
 function filterLabel(){
   if(FILT.mode==='day') return (FILT.day1&&FILT.day2)?(FILT.day1===FILT.day2?('el '+ymdFmt(FILT.day1)):('del '+ymdFmt(FILT.day1)+' al '+ymdFmt(FILT.day2))):'un rango';
-  return {all:'histórico completo','1y':'último año','6m':'últimos 6 meses','3m':'últimos 3 meses','1m':'último mes','1w':'última semana','today':'hoy'}[FILT.mode];
+  return {all:'histórico completo','1y':'último año','6m':'últimos 6 meses','3m':'últimos 3 meses','1m':'último mes','1w':'última semana','today':'hoy','ayer':'ayer'}[FILT.mode];
 }
 function totals(cl){
   const p=predicate(); let tot=0,nf=0,ca=0,can=0,cs=0,csn=0,cr=0,crn=0,an=0,dev=0,nd=0; const inv=cl.inv;
@@ -561,7 +563,7 @@ function updateHint(){
   const fecha = s.length===8 ? (s.slice(6,8)+'/'+s.slice(4,6)+'/'+s.slice(0,4)) : '—';
   const nfmt = nCli.toLocaleString('es');
   const el=document.querySelector('.hint');
-  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v32';
+  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v33';
 }
 document.getElementById('lbtn').onclick=doLogin;
 document.getElementById('logout').onclick=()=>{ CLIENTES=null; CURR=null; HILITE=null; document.getElementById('lpass').value=''; document.getElementById('lock').style.display='flex'; };
@@ -664,7 +666,11 @@ function renderRepTable(){
     }
     if(RNIVEL!=='all'){ if(m.pi===null || !RNIVEL.split(',').includes(String(nivelInicial(m.pi)))) continue; }
     if(filterPi){ if(m.pi===null) continue; const p=m.pi*100; if(RPIMIN!==null&&p<RPIMIN) continue; if(RPIMAX!==null&&p>RPIMAX) continue; }
-    sumV+=m.tot; sumN+=m.nf; sumD+=m.dev; sumCa+=m.ca; sumCs+=m.cs;
+    const mCo=m.tot-m.ca-m.cs;
+    if(RPAY==='cashea'){ sumV+=m.ca; sumCa+=m.ca; sumN+=m.can; }
+    else if(RPAY==='crediscore'){ sumV+=m.cs; sumCs+=m.cs; }
+    else if(RPAY==='contado'){ sumV+=mCo; }
+    else { sumV+=m.tot; sumN+=m.nf; sumD+=m.dev; sumCa+=m.ca; sumCs+=m.cs; }
     if(RSORT==='pi'){ if(m.pi===null) continue; }
     else if(RSORT==='ord'){ if(m.ord===0) continue; }
     else if(RSORT==='ca'){ if(m.ca<=0) continue; }
