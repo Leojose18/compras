@@ -186,7 +186,7 @@ footer b{color:var(--ink2)}
 .nivbadge,.nivtag{display:inline-block;font-weight:700;color:#fff;vertical-align:middle;white-space:nowrap}
 .nivbadge{font-size:11.5px;padding:3px 11px;border-radius:20px;margin-left:8px;letter-spacing:.2px}
 .nivtag{font-size:10px;padding:1px 7px;border-radius:10px;margin-left:6px}
-.lvl1{background:#1B8A4B}.lvl2{background:#4E9A3D}.lvl3{background:#C9962B}.lvl4{background:#D9772E}.lvl5{background:#D24E2A}.lvl6{background:#CC212A}.nsc{background:#8A9BA6}
+.lvl1{background:#1B8A4B}.lvl2{background:#4E9A3D}.lvl3{background:#C9962B}.lvl4{background:#D9772E}.lvl5{background:#D24E2A}.lvl6{background:#CC212A}.nsc{background:#8A9BA6}.cscore{background:#F39C12}
 .nbtn{color:#fff;border:1px solid transparent;font-family:'Inter';font-size:12px;font-weight:600;padding:6px 11px;border-radius:20px;cursor:pointer;opacity:.55;transition:all .12s}
 .nbtn[data-niv="all"]{background:#fff;color:var(--text);border:1px solid var(--line);opacity:1}
 .nbtn:hover{opacity:1}
@@ -253,7 +253,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v30 (nivel combinado)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v31 (crediscore etiquetas)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -561,7 +561,7 @@ function updateHint(){
   const fecha = s.length===8 ? (s.slice(6,8)+'/'+s.slice(4,6)+'/'+s.slice(0,4)) : '—';
   const nfmt = nCli.toLocaleString('es');
   const el=document.querySelector('.hint');
-  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v30';
+  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v31';
 }
 document.getElementById('lbtn').onclick=doLogin;
 document.getElementById('logout').onclick=()=>{ CLIENTES=null; CURR=null; HILITE=null; document.getElementById('lpass').value=''; document.getElementById('lock').style.display='flex'; };
@@ -589,7 +589,25 @@ function nivelesDe(cl){
   return [...s].sort((a,b)=>a-b);
 }
 function nivelTags(cl){ return nivelesDe(cl).map(n=>`<span class="nivtag lvl${n}">N${n}</span>`).join(''); }
-function nivelBadges(cl){ const ns=nivelesDe(cl); if(!ns.length) return '<span class="nivbadge nsc">Sin Cashea</span>'; return ns.map(n=>`<span class="nivbadge lvl${n}" title="Nivel ${n}: ${NIVEL_PCT[n]}% de inicial">Nivel ${n} · ${NIVEL_PCT[n]}% inicial</span>`).join(''); }
+function crediscoreDe(cl){
+  const s=new Set(); const inv=(cl&&cl.inv)||[];
+  const hist={}; for(const o of ((cl&&cl.orders)||[])){ if(o.f && typeof o.pi==='number') hist[String(o.f).trim()]=o.pi; }
+  for(const r of inv){
+    if(r[4]) continue; if(r[3]!==2) continue;
+    const fac=String(r[0]).trim(); let pini=null;
+    if(fac in hist){ pini=hist[fac]; } else if(typeof r[5]==='number' && r[5]>=0){ pini=r[5]; }
+    if(pini!==null){ let p=Math.round(pini*10)*10; if(p<0)p=0; if(p>70)p=70; s.add(p); }
+  }
+  return [...s].sort((a,b)=>a-b);
+}
+function nivelBadges(cl){
+  const ns=nivelesDe(cl); const cs=crediscoreDe(cl);
+  let out='';
+  out += ns.map(n=>`<span class="nivbadge lvl${n}" title="Cashea · Nivel ${n}: ${NIVEL_PCT[n]}% de inicial">Nivel ${n} · ${NIVEL_PCT[n]}% inicial</span>`).join('');
+  out += cs.map(p=>`<span class="nivbadge cscore" title="CrediScore · ${p}% de inicial">CrediScore · ${p}% inicial</span>`).join('');
+  if(!out) out='<span class="nivbadge nsc">Sin Cashea/CrediScore</span>';
+  return out;
+}
 function metrics(cl){
   const p=predicate(); let tot=0,ca=0,can=0,cs=0,cr=0,vt=0,pc=0,ord=0,piMin=null,nf=0,dev=0,nd=0;
   const hist={}; for(const o of (cl.orders||[])){ if(o.f && typeof o.pi==='number') hist[String(o.f).trim()]=o.pi; }
