@@ -253,7 +253,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v27 (crediscore ficha + logout)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v28 (niveles cashea)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -571,11 +571,12 @@ document.getElementById('luser').addEventListener('keydown',e=>{ if(e.key==='Ent
 let MODE='consulta', RSORT='tot', RPIMIN=null, RPIMAX=null, RTYPE='all', RNIVEL='all';
 function clientType(r){ const c=(r||'').trim().charAt(0).toUpperCase(); if(c==='V'||c==='E'||c==='I'||c==='P'||c==='W'||c===''||(c>='0'&&c<='9')) return 'natural'; return 'juridico'; }
 function nivelInicial(pi){ if(pi===null||pi===undefined) return null; const p=pi*100; if(p>=45)return 1; if(p>=35)return 2; if(p>=25)return 3; if(p>=15)return 4; if(p>=5)return 5; return 6; }
-function nivelBadge(n,pi){ if(n===null) return '<span class="nivbadge nsc">Sin Cashea</span>'; return `<span class="nivbadge lvl${n}" title="Nivel segun inicial pagada en Cashea">Nivel ${n} · ${pct(pi)} inicial</span>`; }
+const NIVEL_PCT={1:50,2:40,3:30,4:20,5:10,6:0};
+function nivelBadge(n,pi){ if(n===null) return '<span class="nivbadge nsc">Sin Cashea</span>'; return `<span class="nivbadge lvl${n}" title="Nivel segun inicial pagada en Cashea">Nivel ${n} · ${NIVEL_PCT[n]}% inicial</span>`; }
 function nivelTag(pi){ const n=nivelInicial(pi); if(n===null) return ''; return `<span class="nivtag lvl${n}">N${n}</span>`; }
 function nivelesDe(orders){ const s=new Set(); for(const o of (orders||[])){ if(typeof o.pi==='number'){ const n=nivelInicial(o.pi); if(n!==null) s.add(n); } } return [...s].sort((a,b)=>a-b); }
 function nivelTags(orders){ return nivelesDe(orders).map(n=>`<span class="nivtag lvl${n}">N${n}</span>`).join(''); }
-function nivelBadges(orders){ const ns=nivelesDe(orders); if(!ns.length) return '<span class="nivbadge nsc">Sin Cashea</span>'; return ns.map(n=>`<span class="nivbadge lvl${n}" title="Nivel segun inicial pagada en Cashea">Nivel ${n}</span>`).join(''); }
+function nivelBadges(orders){ const ns=nivelesDe(orders); if(!ns.length) return '<span class="nivbadge nsc">Sin Cashea</span>'; return ns.map(n=>`<span class="nivbadge lvl${n}" title="Nivel ${n}: ${NIVEL_PCT[n]}% de inicial">Nivel ${n} · ${NIVEL_PCT[n]}% inicial</span>`).join(''); }
 function metrics(cl){
   const p=predicate(); let tot=0,ca=0,can=0,cs=0,cr=0,vt=0,pc=0,ord=0,piMin=null,nf=0,dev=0,nd=0;
   for(const r of cl.inv){ if(!p(r[1])||r[4]) continue; if(r[2]<0){ dev+=r[2]; nd++; tot+=r[2]; continue; } tot+=r[2]; nf++; if(r[3]===1){ca+=r[2];can++;} else if(r[3]===2){cs+=r[2];} else if(r[3]===3){cr+=r[2];} }
