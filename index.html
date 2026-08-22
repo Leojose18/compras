@@ -166,9 +166,9 @@ footer b{color:var(--ink2)}
 .repctrl{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;flex-direction:column;gap:12px}
 .repgrp{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .rlab{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700;margin-right:4px}
-.rbtn,.pbtn,.tbtn{background:#fff;border:1px solid var(--line);color:var(--text);font-family:'Inter';font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:20px;cursor:pointer;transition:all .12s}
-.rbtn:hover,.pbtn:hover,.tbtn:hover{border-color:var(--accent)}
-.rbtn.active,.pbtn.active,.tbtn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.rbtn,.pbtn,.tbtn,.paybtn{background:#fff;border:1px solid var(--line);color:var(--text);font-family:'Inter';font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:20px;cursor:pointer;transition:all .12s}
+.rbtn:hover,.pbtn:hover,.tbtn:hover,.paybtn:hover{border-color:var(--accent)}
+.rbtn.active,.pbtn.active,.tbtn.active,.paybtn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 .rcustom{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
 .rcustom input{width:56px;border:1px solid var(--line);border-radius:8px;padding:5px 7px;font-family:'Inter';font-size:13px;outline:none;color:var(--text)}
 .rcustom input:focus{border-color:var(--accent)}
@@ -253,7 +253,7 @@ footer b{color:var(--ink2)}
         <button class="clr" id="clrf" aria-label="Limpiar">&times;</button>
       </label>
     </div>
-    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v33 (ayer y totales)</div>
+    <div class="hint">38.323 clientes · total comprado en tienda, separado contado / Cashea · datos hasta 27/07/2026 · v35 (condicion pago)</div>
     <div class="filters" id="filters">
       <span class="flab">Período</span>
       <button class="fbtn active" data-mode="all">Todo</button>
@@ -563,7 +563,7 @@ function updateHint(){
   const fecha = s.length===8 ? (s.slice(6,8)+'/'+s.slice(4,6)+'/'+s.slice(0,4)) : '—';
   const nfmt = nCli.toLocaleString('es');
   const el=document.querySelector('.hint');
-  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v33';
+  if(el) el.textContent = nfmt+' clientes · total comprado en tienda, separado contado / Cashea · Cashea al '+fecha+' · v35';
 }
 document.getElementById('lbtn').onclick=doLogin;
 document.getElementById('logout').onclick=()=>{ CLIENTES=null; CURR=null; HILITE=null; document.getElementById('lpass').value=''; document.getElementById('lock').style.display='flex'; };
@@ -623,11 +623,11 @@ function setTab(m){ if(m==='reportes' && ROLE!=='reportes') return; MODE=m; docu
 function applyRole(){ const rt=document.querySelector('.tab[data-tab="reportes"]'); if(rt) rt.style.display=(ROLE==='reportes')?'':'none'; if(ROLE!=='reportes' && MODE==='reportes'){ markConsulta(); render(); } }
 function enterReportes(){
   el.innerHTML=`<div class="repctrl">
-    <div class="repgrp"><span class="rlab">Forma de pago</span>
-      <button class="pbtn active" data-pay="all">Todas</button>
-      <button class="pbtn" data-pay="contado">Contado</button>
-      <button class="pbtn" data-pay="cashea">Cashea</button>
-      <button class="pbtn" data-pay="crediscore">CrediScore</button></div>
+    <div class="repgrp"><span class="rlab">Condición de pago</span>
+      <button class="paybtn active" data-pay="all">Todas</button>
+      <button class="paybtn" data-pay="contado">Contado</button>
+      <button class="paybtn" data-pay="cashea">Cashea</button>
+      <button class="paybtn" data-pay="crediscore">CrediScore</button></div>
     <div class="repgrp"><span class="rlab">Tipo cliente</span>
       <button class="tbtn active" data-type="all">Todos</button>
       <button class="tbtn" data-type="juridico">Jurídico</button>
@@ -641,7 +641,7 @@ function enterReportes(){
       <button class="nbtn lvl5" data-niv="5">N5</button>
       <button class="nbtn lvl6" data-niv="6">N6</button></div>
   </div><div class="repsum" id="repsum"></div><div class="reptitle" id="reptitle"></div><div id="reptable"></div>`;
-  el.querySelectorAll('.pbtn').forEach(b=>b.onclick=()=>{ RPAY=b.dataset.pay; el.querySelectorAll('.pbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
+  el.querySelectorAll('.paybtn').forEach(b=>b.onclick=()=>{ RPAY=b.dataset.pay; el.querySelectorAll('.paybtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.tbtn').forEach(b=>b.onclick=()=>{ RTYPE=b.dataset.type; el.querySelectorAll('.tbtn').forEach(x=>x.classList.toggle('active',x===b)); renderRepTable(); });
   el.querySelectorAll('.nbtn').forEach(b=>b.onclick=()=>{
     const v=b.dataset.niv;
